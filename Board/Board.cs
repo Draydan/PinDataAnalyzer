@@ -129,6 +129,11 @@ namespace PinBoard
             return returnText;
         }
 
+        public PointF CanvasToBoardCoordinates(Point mp)
+        {
+
+        }
+
         public static bool TryParseGBFloat(string txt, out float number)
         {
             return float.TryParse(txt, NumberStyles.Float, CultureInfo.GetCultureInfo("en-GB"), out number);

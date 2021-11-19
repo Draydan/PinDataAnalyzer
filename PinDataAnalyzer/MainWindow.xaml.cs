@@ -86,11 +86,15 @@ namespace PinDataAnalyzer
         /// </summary>
         void DrawBoard()
         {
-            //cBoard.
+            cBoard.Children.Clear();
             // draw pins to board canvas
+            // as screen coordinates are mirrored along Y axis, some transformations are necessary
+            float minX = board.Pins.Min(pin => pin.X);
+            float maxY = board.Pins.Max(pin => pin.Y);
+
             foreach (Pin pin in board.Pins)
             {
-                DrawPin((int)pin.X, (int)pin.Y);
+                DrawPin((int)(pin.X - minX), (int)(maxY - pin.Y));
             }
         }
 
@@ -148,6 +152,17 @@ namespace PinDataAnalyzer
             {
                 MessageBox.Show(ex.ToString());
             }
+        }
+
+        private void cBoard_MouseMove(object sender, MouseEventArgs e)
+        {
+            // as screen coordinates are mirrored along Y axis, some transformations are necessary
+            float minX = board.Pins.Min(pin => pin.X);
+            float maxY = board.Pins.Max(pin => pin.Y);
+            Point pointMouse = e.GetPosition(cBoard);
+            int x = (int)(minX + pointMouse.X);
+            int y = (int)(maxY - pointMouse.Y);
+            lbInfo.Content = $"X={x}; Y={y}";
         }
     }
 }
