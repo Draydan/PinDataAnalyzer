@@ -7,15 +7,16 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid Margin="0,0,0,0">
-        <Button x:Name="buttonChooseInputFile" Content="Open File" HorizontalAlignment="Left" Margin="22,23,0,0" VerticalAlignment="Top" Height="20" Width="69"/>
-        <Button x:Name="buttonChooseOutputFile" Content="Write File" HorizontalAlignment="Left" Height="20" Margin="22,178,0,0" VerticalAlignment="Top" Width="69" RenderTransformOrigin="0.417,1.307"/>
-        <Button x:Name="button" Content="Rotate" HorizontalAlignment="Left" Margin="22,142,0,0" VerticalAlignment="Top" Width="69" Height="20"/>
-        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="25" Margin="71,62,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="20"/>
-        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="25" Margin="71,87,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="20"/>
-        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="25" Margin="71,112,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="20"/>
-        <Label x:Name="label" Content="Angle" HorizontalAlignment="Left" Margin="22,62,0,0" VerticalAlignment="Top" Height="25" Width="43"/>
-        <Label x:Name="label_Copy" Content="Pivot X" HorizontalAlignment="Left" Margin="22,87,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
-        <Label x:Name="label_Copy1" Content="Pivot Y" HorizontalAlignment="Left" Margin="22,112,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
+        <Rectangle HorizontalAlignment="Left" Height="122" Margin="10,51,0,0" Stroke="Black" VerticalAlignment="Top" Width="92"/>
+        <Button x:Name="bChooseInputFile" Content="Open File" HorizontalAlignment="Left" Margin="22,23,0,0" VerticalAlignment="Top" Height="20" Width="69" Click="buttonChooseInputFile_Click"/>
+        <Button x:Name="bChooseOutputFile" Content="Write File" HorizontalAlignment="Left" Height="20" Margin="22,178,0,0" VerticalAlignment="Top" Width="69" RenderTransformOrigin="0.417,1.307"/>
+        <Button x:Name="bRotate" Content="Rotate" HorizontalAlignment="Left" Margin="22,143,0,0" VerticalAlignment="Top" Width="69" Height="20" Click="bRotate_Click"/>
+        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="20" Margin="56,64,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="30"/>
+        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="20" Margin="56,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100"/>
+        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="20" Margin="56,114,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100"/>
+        <Label x:Name="label" Content="Angle" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Height="25" Width="44"/>
+        <Label x:Name="label_Copy" Content="Pivot X" HorizontalAlignment="Left" Margin="10,87,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
+        <Label x:Name="label_Copy1" Content="Pivot Y" HorizontalAlignment="Left" Margin="10,112,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
         <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="401" Margin="107,23,0,0" VerticalAlignment="Top" Width="683">
             <TabItem Header="Components">
                 <Grid Background="#FFE5E5E5">
@@ -28,7 +29,6 @@
                 </Grid>
             </TabItem>
         </TabControl>
-        <Border BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Left" Height="121" Margin="13,52,0,0" VerticalAlignment="Top" Width="89" AutomationProperties.HelpText="asdfasdf"/>
 
     </Grid>
 </Window>
