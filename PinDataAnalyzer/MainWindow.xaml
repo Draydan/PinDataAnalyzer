@@ -7,14 +7,28 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid Margin="0,0,0,0">
-        <TextBox x:Name="textBoxInputFile" HorizontalAlignment="Left" Margin="22,50,0,0" Text="C:\Users\YuOko\OneDrive\Desktop\Work\ROBATEST\ТЗ_Robat1.txt" TextWrapping="Wrap" VerticalAlignment="Top" Width="515" Height="18"/>
-        <TextBox x:Name="textBoxOutputFile" HorizontalAlignment="Left" Margin="21,105,0,0" Text="C:\Users\YuOko\OneDrive\Desktop\Work\ROBATEST\Тестовое задание_Robat2.txt" TextWrapping="Wrap" VerticalAlignment="Top" Width="515"/>
-        <Button x:Name="buttonChooseInputFile" Content="Button" HorizontalAlignment="Left" Margin="554,50,0,0" VerticalAlignment="Top" Height="18" Width="48"/>
-        <Button x:Name="buttonChooseOutputFile" Content="Button" HorizontalAlignment="Left" Height="18" Margin="554,105,0,0" VerticalAlignment="Top" Width="48" RenderTransformOrigin="0.417,1.307"/>
-        <Label x:Name="labelInputFile" Content="Label" HorizontalAlignment="Left" Margin="21,19,0,0" VerticalAlignment="Top"/>
-        <Label x:Name="labelOutputFile" Content="Label" HorizontalAlignment="Left" Margin="21,79,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="buttonProcess" Content="Go" Margin="22,147,0,0" VerticalAlignment="Top" Width="514" HorizontalAlignment="Left" Click="buttonProcess_Click"/>
-
+        <Button x:Name="buttonChooseInputFile" Content="Open File" HorizontalAlignment="Left" Margin="22,23,0,0" VerticalAlignment="Top" Height="20" Width="69"/>
+        <Button x:Name="buttonChooseOutputFile" Content="Write File" HorizontalAlignment="Left" Height="20" Margin="22,178,0,0" VerticalAlignment="Top" Width="69" RenderTransformOrigin="0.417,1.307"/>
+        <Button x:Name="button" Content="Rotate" HorizontalAlignment="Left" Margin="22,142,0,0" VerticalAlignment="Top" Width="69" Height="20"/>
+        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="25" Margin="71,62,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="20"/>
+        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="25" Margin="71,87,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="20"/>
+        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="25" Margin="71,112,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="20"/>
+        <Label x:Name="label" Content="Angle" HorizontalAlignment="Left" Margin="22,62,0,0" VerticalAlignment="Top" Height="25" Width="43"/>
+        <Label x:Name="label_Copy" Content="Pivot X" HorizontalAlignment="Left" Margin="22,87,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
+        <Label x:Name="label_Copy1" Content="Pivot Y" HorizontalAlignment="Left" Margin="22,112,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
+        <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="401" Margin="107,23,0,0" VerticalAlignment="Top" Width="683">
+            <TabItem Header="Components">
+                <Grid Background="#FFE5E5E5">
+                    <ListBox x:Name="lbComponents"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Board">
+                <Grid Background="#FFE5E5E5">
+                    <Canvas x:Name="cBoard" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        <Border BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Left" Height="121" Margin="13,52,0,0" VerticalAlignment="Top" Width="89" AutomationProperties.HelpText="asdfasdf"/>
 
     </Grid>
 </Window>

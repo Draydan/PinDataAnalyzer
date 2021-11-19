@@ -45,8 +45,11 @@ namespace PinBoard
                 // turn angle in radians
                 double rad = Math.PI * degreeTurn / 180;
 
+                //not own rotation
                 //pin.X = (float)(xTurn + xRel * Math.Cos(rad) + yRel * Math.Sin(rad));
                 //pin.Y = (float)(yTurn + yRel * Math.Cos(rad) - xRel * Math.Sin(rad));
+
+                // own rotation
                 pin.X = (float)(xTurn + xRel * Math.Cos(rad) - yRel * Math.Sin(rad));
                 pin.Y = (float)(yTurn + xRel * Math.Sin(rad) + yRel * Math.Cos(rad));
             }
