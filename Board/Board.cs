@@ -6,17 +6,23 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace PinBoard
 {
     public class Board
     {
+        // full text of file
+        private string text;
+
         public Board()
         {
             Pins = new List<Pin>();
         }
 
         public List<Pin> Pins;
+
+        //public delegate void UpdateProgressDelegate();
 
         /// <summary>
         /// Add Pin
@@ -26,11 +32,11 @@ namespace PinBoard
         /// <param name="names">Joined names of component and pin</param>
         public void AddPin(float px, float py, string names)
         {
-            string[] namesplit  = names.Split('_');
+            string[] namesplit = names.Split('_');
             // After N_PIN there may be some text that can't be split like this.
             // But I dont know what you want to do if its like this.
             // So I'm not adding any specific processing of that error here.
-            Pins.Add(new Pin {X = px, Y = py, ComponentName = namesplit[0], Name = namesplit[1]});
+            Pins.Add(new Pin { X = px, Y = py, ComponentName = namesplit[0], Name = namesplit[1] });
         }
 
         /// <summary>
@@ -52,7 +58,7 @@ namespace PinBoard
         /// <param name="y"></param>
         public void Turn(float degreeTurn, float xTurn, float yTurn)
         {
-            foreach(Pin pin in Pins)
+            foreach (Pin pin in Pins)
             {
                 float x0 = pin.X;
                 float y0 = pin.Y;
@@ -85,13 +91,15 @@ namespace PinBoard
             //@"C:\Users\YuOko\OneDrive\Desktop\Work\ROBATEST\ТЗ_Robat1.txt";
             string returnText = "";
 
-            using (StreamReader sr = new StreamReader(readPath))
+            using (StreamReader sr = new(readPath))
             {
+                text = "";
                 while (!sr.EndOfStream)
                 {
                     string fileLine = sr.ReadLine();
+                    text += fileLine + "\n";
                     string pinDesc = fileLine.Replace("N_PIN ", "");
-                    if(fileLine.Length > pinDesc.Length)
+                    if (fileLine.Length > pinDesc.Length)
                     {
                         string[] pinData = pinDesc.Split(' ');
 
@@ -101,12 +109,12 @@ namespace PinBoard
                             string names = pinData[0];
                             string px = pinData[1];
                             string py = pinData[2];
-                            
+
                             try
                             {
                                 // adding pin
                                 float pxf, pyf;
-                                if (TryParseGBFloat(px, out pxf) && TryParseGBFloat(py, out pyf))
+                                if (Helper.TryParseGBFloat(px, out pxf) && Helper.TryParseGBFloat(py, out pyf))
                                     AddPin(pxf, pyf, names);
                                 else
                                     //  catching any unparseable pin descriptions
@@ -118,7 +126,7 @@ namespace PinBoard
                                 returnText += pinDesc + "\n";
                             }
                         }
-                        else 
+                        else
                         {
                             returnText += pinDesc + "\n";
                         }
@@ -130,10 +138,34 @@ namespace PinBoard
         }
 
         /// <summary>
+        /// Write turned pin coordinates into new file
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="startPin"></param>
+        /// <param name="endPin"></param>
+        public void WritePinsToFile(string path, int startPin, int endPin)
+        {
+            //            foreach(Pin pin in Pins)
+            for (int pi = startPin; pi <= endPin && pi < Pins.Count; pi++)
+            {
+                Pin pin = Pins[pi];
+                Regex rex = new(@"N_PIN\s" + pin.ComponentName + "_" + pin.Name + @"\s\d+\.\d+\s\d+\.\d+");
+                text = rex.Replace(text, $"N_PIN {pin.ComponentName}_{pin.Name} {Math.Round(pin.X, 3)} {Math.Round(pin.Y, 3)}");
+            }
+
+            if (endPin >= Pins.Count - 1)
+                using (StreamWriter sw = new(path, append: false))
+                {
+                    sw.Write(text);
+                }
+        }
+
+        /// <summary>
         /// minimal x of all pins for board drawing
         /// </summary>
-        public float MinX {
-            get { return (Pins.Count == 0)?(0):(Pins.Min(pin => pin.X)); }
+        public float MinX
+        {
+            get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.X)); }
         }
 
         /// <summary>
@@ -147,9 +179,9 @@ namespace PinBoard
         /// <summary>
         /// minimal y of all pins for board drawing
         /// </summary>
-        public float MinY 
-        { 
-            get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y)); } 
+        public float MinY
+        {
+            get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y)); }
         }
         /// <summary>
         /// maximal x of all pins for board drawing
@@ -199,9 +231,5 @@ namespace PinBoard
             return CanvasToBoardCoordinates(cx, cy);
         }
 
-        public static bool TryParseGBFloat(string txt, out float number)
-        {
-            return float.TryParse(txt, NumberStyles.Float, CultureInfo.GetCultureInfo("en-GB"), out number);
-        }
     }
 }

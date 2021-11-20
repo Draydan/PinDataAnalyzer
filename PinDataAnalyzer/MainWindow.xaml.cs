@@ -26,7 +26,9 @@ namespace PinDataAnalyzer
     /// </summary>
     public partial class MainWindow : Window
     {
-        Board board;
+        private Board board;
+
+        // value from 0 to 100 to set it on progressbar when startint drawing pins
         private const ushort progressOnPinningStart = 30;
 
         public MainWindow()
@@ -35,27 +37,10 @@ namespace PinDataAnalyzer
             board = new Board();
         }
 
-        private void buttonProcess_Click(object sender, RoutedEventArgs e)
-        {
-            string readPath = @"C:\Users\YuOko\OneDrive\Desktop\Work\ROBATEST\ТЗ_Robat1.txt";
-            DateTime start = DateTime.Now;
-            string text = "";
-            using (StreamReader sr = new StreamReader(readPath))
-            {                
-                while (!sr.EndOfStream)
-                {
-                    string fileLine = sr.ReadLine();
-                    text += fileLine;
-                }
-            }
-            DateTime end = DateTime.Now;
-            MessageBox.Show(string.Format("start {0}, end {1}", start, end));
-        }
-
         private void ShowProgress(string info, ushort progress)
         {
             lbInfo.Content = info;
-            pbInfo.Value = progress;            
+            pbInfo.Value = progress;
         }
 
         /// <summary>
@@ -212,23 +197,22 @@ namespace PinDataAnalyzer
             try
             {
                 float degree, centerX, centerY;
-                if (!Board.TryParseGBFloat(tbDegree.Text, out degree))
+                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
                 {
                     MessageBox.Show("Bad format of degree");
                     return;
                 }
-                if (!Board.TryParseGBFloat(tbAroundX.Text, out centerX))
+                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
                 {
                     MessageBox.Show("Bad format of pivot x");
                     return;
                 }                
-                if (!Board.TryParseGBFloat(tbAroundY.Text, out centerY))
+                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
                 {
                     MessageBox.Show("Bad format of pivot y");
                     return;
                 }
                 board.Turn(degree, centerX, centerY);
-
                 DrawBoard();
                 ShowProgress("Rotation\nfinished", 100);
             }
@@ -269,6 +253,27 @@ namespace PinDataAnalyzer
                 tbAroundY.Text = ((int)p.Y).ToString();
 
                 //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
+            }
+        }
+
+        private void bChooseOutputFile_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog fd = new SaveFileDialog();
+            
+            if ((bool)fd.ShowDialog())
+            {
+                int pinCount = board.Pins.Count;
+
+                // each N-th pin will change progress bar
+                ushort refreshStep = 1000;
+
+                for (int pi = 0; pi < pinCount; pi += refreshStep)
+                {
+                    board.WritePinsToFile(fd.FileName, pi, pi + refreshStep);
+                    ShowProgress("Writing file", (ushort)(100 * pi / pinCount));
+                }
+                //MessageBox.Show("File written");
+                ShowProgress("File written", 100);
             }
         }
     }
