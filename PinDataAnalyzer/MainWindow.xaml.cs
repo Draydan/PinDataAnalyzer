@@ -119,15 +119,15 @@ namespace PinDataAnalyzer
                     ShowProgress("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
             }
             // lets write all extremal coordinates on board
-            ushort shift = 5;
+            
             SolidColorBrush color = Brushes.Red;
-            WriteOnBoard(shift + board.MinX, shift + board.MinY, $"({board.MinX}; {board.MinY})", color);
+            WriteOnBoard(board.MinX, board.MinY, $"({board.MinX}; {board.MinY})", color);
             DrawPointFigure(board.MinX, board.MinY, color);
 
             //WriteOnBoard(board.MaxX, board.MaxY, $"({board.MaxX}; {board.MinY})", color);
             //DrawPoint(x, y, Brushes.Blue);
 
-            WriteOnBoard(shift + board.MinX, shift + board.MaxY, $"({board.MinX}; {board.MaxY})", color);
+            WriteOnBoard(board.MinX, board.MaxY, $"({board.MinX}; {board.MaxY})", color);
             DrawPointFigure(board.MinX, board.MaxY, color);
         }
 
@@ -140,6 +140,8 @@ namespace PinDataAnalyzer
         /// <param name="color"></param>
         void WriteOnBoard(double bx, double by, string text, SolidColorBrush color)
         {
+            //ushort shift = 5;
+
             int cx = board.BoardToCanvasX(bx);
             int cy = board.BoardToCanvasY(by);
 
