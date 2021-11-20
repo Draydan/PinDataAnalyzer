@@ -133,7 +133,7 @@ namespace PinBoard
         /// minimal x of all pins for board drawing
         /// </summary>
         public float MinX {
-            get { return Pins.Min(pin => pin.X); }            
+            get { return (Pins.Count == 0)?(0):(Pins.Min(pin => pin.X)); }
         }
 
         /// <summary>
@@ -141,7 +141,33 @@ namespace PinBoard
         /// </summary>
         public float MaxY
         {
-            get { return Pins.Max(pin => pin.Y); }
+            get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.Y)); }
+        }
+
+        /// <summary>
+        /// minimal y of all pins for board drawing
+        /// </summary>
+        public float MinY 
+        { 
+            get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y)); } 
+        }
+        /// <summary>
+        /// maximal x of all pins for board drawing
+        /// </summary>
+        public float MaxX
+        {
+            get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.X)); }
+        }
+
+        public int BoardToCanvasX(double bx)
+        {
+            // as screen coordinates are mirrored along Y axis, some transformations are necessary
+            return (int)(bx - this.MinX);
+        }
+
+        public int BoardToCanvasY(double by)
+        {
+            return (int)(this.MaxY - by);
         }
 
         public PointF CanvasToBoardCoordinates(double cx, double cy)

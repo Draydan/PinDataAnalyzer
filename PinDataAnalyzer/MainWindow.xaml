@@ -23,14 +23,14 @@
                     <ListBox x:Name="lbComponents"/>
                 </Grid>
             </TabItem>
-            <TabItem Header="Board">
-                <Grid Background="#FFE5E5E5">
-                    <Canvas x:Name="cBoard" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch" MouseMove="cBoard_MouseMove"/>
+            <TabItem Header="Board" IsSelected="True">
+                <Grid Background="#FFE5E5E5"  MouseMove="cBoard_MouseMove"  MouseDown="cBoard_MouseDown">
+                    <Canvas x:Name="cBoard" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch"/>
                 </Grid>
             </TabItem>
         </TabControl>
-        <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="22" Margin="10,290,0,0" VerticalAlignment="Top" Width="92" Orientation="Horizontal"/>
-        <Label x:Name="lbInfo" Content="" HorizontalAlignment="Left" Height="37" Margin="10,248,0,0" VerticalAlignment="Top" Width="92"/>
+        <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="22" Margin="10,217,0,0" VerticalAlignment="Top" Width="92" Orientation="Horizontal"/>
+        <Label x:Name="lbInfo" Content="" HorizontalAlignment="Left" Height="56" Margin="10,246,0,0" VerticalAlignment="Top" Width="92"/>
 
     </Grid>
 </Window>

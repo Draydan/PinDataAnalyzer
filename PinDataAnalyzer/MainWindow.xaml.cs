@@ -27,6 +27,8 @@ namespace PinDataAnalyzer
     public partial class MainWindow : Window
     {
         Board board;
+        private const ushort progressOnPinningStart = 30;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -50,6 +52,12 @@ namespace PinDataAnalyzer
             MessageBox.Show(string.Format("start {0}, end {1}", start, end));
         }
 
+        private void ShowProgress(string info, ushort progress)
+        {
+            lbInfo.Content = info;
+            pbInfo.Value = progress;            
+        }
+
         /// <summary>
         /// open file, read pins from it and fill listbox and board
         /// </summary>
@@ -60,12 +68,14 @@ namespace PinDataAnalyzer
             OpenFileDialog ofd = new OpenFileDialog();
             if ((bool)ofd.ShowDialog())
             {
+                ShowProgress("Loading.\nReading file", 0);
                 // read pins to board object
                 string path = ofd.FileName;
                 string problems = board.ReadPinsFromFile(path);
                 if(problems != string.Empty)
                     MessageBox.Show("While reading pins, some lines were misformed:\n" + problems);
 
+                ShowProgress("Loading.\nFilling components list", 10);
                 // write components to listbox
                 var components = board.Pins.GroupBy(pin => pin.ComponentName)
                     .Select( group => new
@@ -77,8 +87,10 @@ namespace PinDataAnalyzer
 
                 lbComponents.ItemsSource = components;
 
+                ShowProgress("Loading.\nDrawing pins", progressOnPinningStart);
                 // draw pins to board canvas
                 DrawBoard();
+                ShowProgress("Loading\nfinished", 100);
             }
         }
 
@@ -86,38 +98,106 @@ namespace PinDataAnalyzer
         /// draw pins on board canvas
         /// </summary>
         void DrawBoard()
-        {
+        {            
             cBoard.Children.Clear();
             // draw pins to board canvas
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
             float minX = board.Pins.Min(pin => pin.X);
             float maxY = board.Pins.Max(pin => pin.Y);
 
-            foreach (Pin pin in board.Pins)
+            int pinCount = board.Pins.Count;
+
+            // each N-th pin will change progress bar
+            ushort refreshStep = 2000;
+
+            for (int pi = 0; pi < pinCount; pi++)
+            //foreach (Pin pin in board.Pins)
             {
-                DrawPin((int)(pin.X - minX), (int)(maxY - pin.Y));
+                Pin pin = board.Pins[pi];
+                DrawPin(pin.X, pin.Y);
+                if (pi % refreshStep == 0)
+                    ShowProgress("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
             }
+            // lets write all extremal coordinates on board
+            ushort shift = 5;
+            SolidColorBrush color = Brushes.Red;
+            WriteOnBoard(shift + board.MinX, shift + board.MinY, $"({board.MinX}; {board.MinY})", color);
+            DrawPointFigure(board.MinX, board.MinY, color);
+
+            //WriteOnBoard(board.MaxX, board.MaxY, $"({board.MaxX}; {board.MinY})", color);
+            //DrawPoint(x, y, Brushes.Blue);
+
+            WriteOnBoard(shift + board.MinX, shift + board.MaxY, $"({board.MinX}; {board.MaxY})", color);
+            DrawPointFigure(board.MinX, board.MaxY, color);
         }
 
         /// <summary>
-        /// drawing circle for pin
+        /// write text on board canvas
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        void DrawPin(int x, int y)
+        /// <param name="bx">board x</param>
+        /// <param name="by">board y</param>
+        /// <param name="text"></param>
+        /// <param name="color"></param>
+        void WriteOnBoard(double bx, double by, string text, SolidColorBrush color)
         {
-            int radius = 1;
+            int cx = board.BoardToCanvasX(bx);
+            int cy = board.BoardToCanvasY(by);
+
+            //(int)(pin.X - minX), (int)(maxY - pin.Y)
+
+            TextBlock textBlock = new TextBlock();
+            textBlock.Text = text;
+            textBlock.Foreground = color;
+            Canvas.SetLeft(textBlock, cx);
+            Canvas.SetTop(textBlock, cy);
+            cBoard.Children.Add(textBlock);
+        }
+
+        /// <summary>
+        /// drawing pin
+        /// </summary>
+        /// <param name="x">board x</param>
+        /// <param name="y">board y</param>
+        void DrawPin(float x, float y)
+        {
+            DrawPointFigure(x, y, Brushes.Blue);
+        }
+
+        /// <summary>
+        /// drawing colored "point"
+        /// </summary>
+        /// <param name="x">board x</param>
+        /// <param name="y">board y</param>
+        /// <param name="color">color</param>
+        void DrawPointFigure(double x, double y, SolidColorBrush color, int width = 1)
+        {
+            DrawPointFigure((int)x, (int)y, color, width);
+        }
+
+        /// <summary>
+        /// drawing colored "point"
+        /// </summary>
+        /// <param name="bx">board x</param>
+        /// <param name="by">board y</param>
+        /// <param name="color">color</param>
+        void DrawPointFigure(int bx, int by, SolidColorBrush color, int width = 1)
+        {
+            int radius = width;
+
+            int x = board.BoardToCanvasX(bx);
+            int y = board.BoardToCanvasY(by);
 
             Point point = new Point(x, y);
-            Ellipse ellipse = new Ellipse();
+            Ellipse figure = new Ellipse();
+            //Rectangle fig = new Rectangle();
 
-            ellipse.Width = radius * 2;
-            ellipse.Height = radius * 2;
+            figure.Width = radius * 2;
+            figure.Height = radius * 2;
 
-            ellipse.StrokeThickness = 1;
-            ellipse.Stroke = Brushes.Blue;
-            ellipse.Margin = new Thickness(point.X - radius, point.Y - radius, 0, 0);
-            cBoard.Children.Add(ellipse);
+            figure.StrokeThickness = 1;
+            figure.Stroke = color;
+            figure.Margin = new Thickness(point.X - radius, point.Y - radius, 0, 0);
+            cBoard.Children.Add(figure);
         }
 
         /// <summary>
@@ -148,6 +228,7 @@ namespace PinDataAnalyzer
                 board.Turn(degree, centerX, centerY);
 
                 DrawBoard();
+                ShowProgress("Rotation\nfinished", 100);
             }
             catch(Exception ex)
             {
@@ -155,12 +236,38 @@ namespace PinDataAnalyzer
             }
         }
 
+        /// <summary>
+        /// moving mouse, showing coordinates
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void cBoard_MouseMove(object sender, MouseEventArgs e)
         {
-            // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            Point mp = e.GetPosition(cBoard);
-            System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
-            lbInfo.Content = $"X={p.X}; Y={p.Y}";
+            if (board.Pins.Count > 0)
+            {
+                // as screen coordinates are mirrored along Y axis, some transformations are necessary
+                Point mp = e.GetPosition(cBoard);
+                System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                lbInfo.Content = $"Mouse:\nX={p.X};\nY={p.Y}";
+            }
+        }
+
+        /// <summary>
+        /// click to get coordinates for rotation
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void cBoard_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (board.Pins.Count > 0)
+            {
+                Point mp = e.GetPosition(cBoard);
+                System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                tbAroundX.Text = ((int)p.X).ToString();
+                tbAroundY.Text = ((int)p.Y).ToString();
+
+                //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
+            }
         }
     }
 }
