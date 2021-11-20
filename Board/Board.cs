@@ -129,9 +129,48 @@ namespace PinBoard
             return returnText;
         }
 
+        /// <summary>
+        /// minimal x of all pins for board drawing
+        /// </summary>
+        public float MinX {
+            get { return Pins.Min(pin => pin.X); }            
+        }
+
+        /// <summary>
+        /// maximal y of all pins for board drawing
+        /// </summary>
+        public float MaxY
+        {
+            get { return Pins.Max(pin => pin.Y); }
+        }
+
+        public PointF CanvasToBoardCoordinates(double cx, double cy)
+        {
+            // as screen coordinates are mirrored along Y axis, some transformations are necessary
+            float x = (float)(this.MinX + cx);
+            float y = (float)(this.MaxY - cy);
+            return new PointF(x, y);
+        }
+
+        /// <summary>
+        /// transform coordinates on canvas into board plane
+        /// </summary>
+        /// <param name="mp">Point on canvas</param>
+        /// <returns></returns>
         public PointF CanvasToBoardCoordinates(Point mp)
         {
+            return CanvasToBoardCoordinates(mp.X, mp.Y);
+        }
 
+        /// <summary>
+        /// transform coordinates on canvas into board plane
+        /// </summary>
+        /// <param name="cx">x on canvas</param>
+        /// <param name="cy">y on canvas</param>
+        /// <returns></returns>
+        public PointF CanvasToBoardCoordinates(int cx, int cy)
+        {
+            return CanvasToBoardCoordinates(cx, cy);
         }
 
         public static bool TryParseGBFloat(string txt, out float number)

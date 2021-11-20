@@ -17,6 +17,7 @@ using System.IO;
 using PinBoard;
 using Microsoft.Win32;
 using System.Globalization;
+//using System.Drawing;
 
 namespace PinDataAnalyzer
 {
@@ -157,12 +158,9 @@ namespace PinDataAnalyzer
         private void cBoard_MouseMove(object sender, MouseEventArgs e)
         {
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            float minX = board.Pins.Min(pin => pin.X);
-            float maxY = board.Pins.Max(pin => pin.Y);
-            Point pointMouse = e.GetPosition(cBoard);
-            int x = (int)(minX + pointMouse.X);
-            int y = (int)(maxY - pointMouse.Y);
-            lbInfo.Content = $"X={x}; Y={y}";
+            Point mp = e.GetPosition(cBoard);
+            System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+            lbInfo.Content = $"X={p.X}; Y={p.Y}";
         }
     }
 }
