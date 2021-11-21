@@ -29,8 +29,11 @@ namespace PinDataAnalyzer
     {
 
         #region constants and parameters
+        // radius of drawed segment
+        private const ushort pivotRadius = 40;
+
         // value from 0 to 100 to set it on progressbar when startint drawing pins
-        private const ushort progressOnPinningStart = 50;
+        private const ushort progressOnPinningStart = 70;
 
         // filepaths to keep for a thread
         private string inputFilePath, outputFilePath;
@@ -40,30 +43,41 @@ namespace PinDataAnalyzer
 
         // rotation
         float degree, centerX, centerY;
+
+        // working one of buttons' tasks
+        private bool inProcess = false;
         #endregion
 
         private Board board;
-        private bool inProcess = false;
+        private Polyline pivotPoly;
+        private Rectangle componentSelected;
 
         public MainWindow()
         {
             InitializeComponent();
             board = new Board();
+
+            PivotToDefault();
+            componentSelected = new Rectangle();
+            componentSelected.Stroke = Brushes.Orange;
+            cBoard.Children.Add(componentSelected);
         }
 
         #region buttons and their actions
+        /// <summary>
+        /// open file, read pins from it and fill listbox and board
+        /// </summary>
         private void ThreadedOpeningAndReading()
         {
             WorkInProgress(true);
-            ShowProgressThreaded("Loading.\nReading file", 0);
+            ShowProgressThreaded("Loading.\nReading file", 10);
             // read pins to board object
             string path = inputFilePath;
             string problems = board.ReadPinsFromFile(path);
 
             if (board.Pins.Count > 0)
             {
-
-                ShowProgressThreaded("Loading.\nFilling components list", 10);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 25);
 
                 // write components to listbox
                 var components = board.Pins.GroupBy(pin => pin.ComponentName)
@@ -74,6 +88,8 @@ namespace PinDataAnalyzer
                     }
                     ).OrderBy(grp => grp.component).ToList();
 
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 40);
+
                 Dispatcher.Invoke(() =>
                 {
                     lbComponents.ItemsSource = components;
@@ -83,7 +99,16 @@ namespace PinDataAnalyzer
                 // draw pins to board canvas
                 DrawBoardThreaded();
             }
-            ShowProgressThreaded("Loading\nfinished", 100);
+            else
+            {
+                // clearing if no pins loaded
+                Dispatcher.Invoke(() =>
+                {
+                    lbComponents.Items.Clear();
+                    cBoard.Children.Clear();
+                });
+            }
+            ShowProgressThreaded($"Loading\nfinished\n{board.Pins.Count} Pins\nloaded", 100);
             
             WorkInProgress(false);
             if (problems != string.Empty)
@@ -91,7 +116,7 @@ namespace PinDataAnalyzer
         }
 
         /// <summary>
-        /// open file, read pins from it and fill listbox and board
+        /// open file, read pins from it and fill listbox and board in separate thread
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -102,6 +127,7 @@ namespace PinDataAnalyzer
                 OpenFileDialog ofd = new OpenFileDialog();
                 if ((bool)ofd.ShowDialog())
                 {
+                    ShowProgressThreaded("Loading.\nReading file", 0);
                     inputFilePath = ofd.FileName;
                     new Thread(new ThreadStart(ThreadedOpeningAndReading)).Start();
                 }
@@ -121,23 +147,10 @@ namespace PinDataAnalyzer
         private void bRotate_Click(object sender, RoutedEventArgs e)
         {
             try
-            {               
-                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
-                {
-                    MessageBox.Show("Bad format of degree");
-                    return;
-                }
-                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
-                {
-                    MessageBox.Show("Bad format of pivot x");
-                    return;
-                }
-                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
-                {
-                    MessageBox.Show("Bad format of pivot y");
-                    return;
-                }
-                new Thread(new ThreadStart(ThreadedRotation)).Start();
+            {
+                CheckTextBoxes();
+                if(board.Pins.Count>0)
+                    new Thread(new ThreadStart(ThreadedRotation)).Start();
             }
             catch (Exception ex)
             {
@@ -260,9 +273,6 @@ namespace PinDataAnalyzer
 
             int pinCount = board.Pins.Count;
 
-            //// each N-th pin will change progress bar
-            //ushort refreshStep = 2000;
-
             for (int pi = 0; pi < pinCount; pi++)
             //foreach (Pin pin in board.Pins)
             {
@@ -273,24 +283,86 @@ namespace PinDataAnalyzer
             }
 
             // lets write all extremal coordinates on board
+            int bMaxX, bMinX, bMaxY, bMinY;
+            bMaxX = (int)Math.Round(board.MaxX);
+            bMaxY = (int)Math.Round(board.MaxY);
+            bMinX = (int)Math.Round(board.MinX);
+            bMinY = (int)Math.Round(board.MinY);
 
             SolidColorBrush color = Brushes.Red;
-            WriteOnBoard(board.MinX, board.MinY, $"({board.MinX}; {board.MinY})", color);
-            DrawPointFigure(board.MinX, board.MinY, color);
+            WriteOnBoard(bMinX, bMinY, $"({bMinX}; {bMinY})", color);
+            DrawPointFigure(bMinX, bMinY, color);
 
-            WriteOnBoard(board.MaxX, board.MaxY, $"({board.MaxX}; {board.MaxY})", color);
-            DrawPointFigure(board.MaxX, board.MaxY, color);
+            WriteOnBoard(bMaxX, bMaxY, $"({bMaxX}; {bMaxY})", color);
+            DrawPointFigure(bMaxX, bMaxY, color);
 
-            WriteOnBoard(board.MinX, board.MaxY, $"({board.MinX}; {board.MaxY})", color);
-            DrawPointFigure(board.MinX, board.MaxY, color);
+            WriteOnBoard(bMinX, bMaxY, $"({bMinX}; {bMaxY})", color);
+            DrawPointFigure(bMinX, bMaxY, color);
 
-            WriteOnBoard(board.MaxX, board.MinY, $"({board.MaxX}; {board.MinY})", color);
-            DrawPointFigure(board.MaxX, board.MinY, color);
+            WriteOnBoard(bMaxX, bMinY, $"({bMaxX}; {bMinY})", color);
+            DrawPointFigure(bMaxX, bMinY, color);
 
             double posY = board.CenterOfGravity().Y;
             double posX = board.MaxX * 1.05;
             WriteOnBoard(posX, posY, $"Gravity center: ({board.CenterOfGravity().X}; {posY})", color);
             //DrawPointFigure(board.MaxX, posY, color);
+
+            MovePivot();
+            cBoard.Children.Add(pivotPoly);
+        }
+
+        /// <summary>
+        /// move visualization of component according to its name
+        /// </summary>
+        /// <param name="componentName"></param>
+        private void MoveSelectedComponentVisuals(string componentName)
+        {
+            List<Pin> thisComponentPins = board.Pins.Where(pin => pin.ComponentName == componentName).ToList();
+            float MaxX = board.BoardToCanvasX(thisComponentPins.Max(pin => pin.X));
+            float MaxY = board.BoardToCanvasY(thisComponentPins.Max(pin => pin.Y));
+            float MinX = board.BoardToCanvasX(thisComponentPins.Min(pin => pin.X));
+            float MinY = board.BoardToCanvasY(thisComponentPins.Min(pin => pin.Y));
+
+            componentSelected.Width = MaxX - MinX;
+            componentSelected.Height = Math.Abs(MaxY - MinY);
+            Canvas.SetLeft(componentSelected, MinX);
+            // just in case we change smth in the future and max will swap with min again
+            Canvas.SetTop(componentSelected, (MaxY<MinY)?(MaxY):(MinY));
+        }
+
+        /// <summary>
+        /// Move Pivot Polygon on canvas in accordance with textboxes' values
+        /// </summary>
+        private void MovePivot()
+        {
+            try
+            {
+                if (board != null && tbDegree != null && tbAroundX != null && tbAroundY != null)
+                {
+                    int px = board.BoardToCanvasX(int.Parse(tbAroundX.Text));
+                    int py = board.BoardToCanvasY(int.Parse(tbAroundY.Text));
+
+                    pivotPoly.Points[0] = new Point(px + pivotRadius, py);
+                    pivotPoly.Points[1] = new Point(px, py);
+
+                    double angle = Math.PI * int.Parse(tbDegree.Text) / 180;
+                    pivotPoly.Points[2] = new Point(
+                        px + pivotRadius * Math.Cos(angle),
+                        py - pivotRadius * Math.Sin(angle));
+                }
+            }
+            catch
+            {
+                PivotToDefault();
+            }
+        }
+
+        private void PivotToDefault()
+        {
+            pivotPoly = new Polyline();
+            for (int i = 0; i < 3; i++)
+                pivotPoly.Points.Add(new Point(0, 0));
+            pivotPoly.Stroke = Brushes.Red;
         }
 
         /// <summary>
@@ -397,7 +469,55 @@ namespace PinDataAnalyzer
                     tbAroundY.Text = ((int)p.Y).ToString();
 
                     //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
+                    MovePivot();
                 }
+        }
+
+        /// <summary>
+        /// one of text boxes was confirmed with Enter
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void TextBoxConfirmed(object sender, TextChangedEventArgs e)
+        {
+            CheckTextBoxes();
+            MovePivot();
+        }
+
+        /// <summary>
+        /// checking text boxes for format of values
+        /// </summary>
+        private void CheckTextBoxes()
+        {
+            if (tbDegree != null && tbAroundX != null && tbAroundY != null)
+            {
+                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
+                {
+                    MessageBox.Show("Bad format of degree");
+                    return;
+                }
+                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
+                {
+                    MessageBox.Show("Bad format of pivot x");
+                    return;
+                }
+                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
+                {
+                    MessageBox.Show("Bad format of pivot y");
+                    return;
+                }
+            }
+        }
+
+        private void lbComponents_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            string selectedComponentLine = lbComponents.SelectedItem.ToString();
+            //MessageBox.Show(selectedComponentLine);
+            string componentName = selectedComponentLine.Split(", pins")[0];
+            componentName = componentName.Replace("{ component = ", "");
+            //{ component = "BL13", pins = 1 }
+            MoveSelectedComponentVisuals(componentName);
+            cBoard.Focus();
         }
 
         /// <summary>
@@ -432,9 +552,9 @@ namespace PinDataAnalyzer
         /// <param name="beWrite">enability status of "Write File" to set</param>
         private void ButtonsEnability(bool beOpen, bool beRotate, bool beWrite)
         {
-            bChooseInputFile.IsEnabled = beOpen;
+            bLoadFile.IsEnabled = beOpen;
             bRotate.IsEnabled = beRotate;
-            bChooseOutputFile.IsEnabled = beWrite;
+            bWriteFile.IsEnabled = beWrite;
         }
         #endregion
     }

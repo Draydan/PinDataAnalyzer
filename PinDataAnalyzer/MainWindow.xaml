@@ -7,22 +7,22 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid x:Name="MainGrid" Margin="0,0,0,0">
-        <Border BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Left" Height="98" Margin="10,229,0,0" VerticalAlignment="Top" Width="92"/>
+        <Border BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Left" Height="124" Margin="10,229,0,0" VerticalAlignment="Top" Width="92"/>
 
         <Rectangle HorizontalAlignment="Left" Height="122" Margin="10,51,0,0" Stroke="Black" VerticalAlignment="Top" Width="92"/>
-        <Button x:Name="bChooseInputFile" Content="Open File" HorizontalAlignment="Left" Margin="22,23,0,0" VerticalAlignment="Top" Height="20" Width="69" Click="buttonChooseInputFile_Click"/>
-        <Button x:Name="bChooseOutputFile" Content="Write File" HorizontalAlignment="Left" Height="20" Margin="22,178,0,0" VerticalAlignment="Top" Width="69" RenderTransformOrigin="0.417,1.307" Click="bChooseOutputFile_Click"/>
+        <Button x:Name="bLoadFile" Content="Load File" HorizontalAlignment="Left" Margin="22,23,0,0" VerticalAlignment="Top" Height="20" Width="69" Click="buttonChooseInputFile_Click"/>
+        <Button x:Name="bWriteFile" Content="Write File" HorizontalAlignment="Left" Height="20" Margin="22,178,0,0" VerticalAlignment="Top" Width="69" RenderTransformOrigin="0.417,1.307" Click="bChooseOutputFile_Click"/>
         <Button x:Name="bRotate" Content="Rotate" HorizontalAlignment="Left" Margin="22,143,0,0" VerticalAlignment="Top" Width="69" Height="20" Click="bRotate_Click"/>
-        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="20" Margin="56,64,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="30"/>
-        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="20" Margin="56,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100"/>
-        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="20" Margin="56,114,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100"/>
+        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="20" Margin="56,64,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="30" TextChanged="TextBoxConfirmed"/>
+        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="20" Margin="56,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100" TextChanged="TextBoxConfirmed"/>
+        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="20" Margin="56,114,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100" TextChanged="TextBoxConfirmed"/>
         <Label x:Name="label" Content="Angle" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Height="25" Width="44"/>
         <Label x:Name="label_Copy" Content="Pivot X" HorizontalAlignment="Left" Margin="10,87,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
         <Label x:Name="label_Copy1" Content="Pivot Y" HorizontalAlignment="Left" Margin="10,112,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
-        <TabControl x:Name="tabControl" HorizontalAlignment="Stretch" Margin="107,23,0,0" VerticalAlignment="Stretch">
+        <TabControl x:Name="tabControl" Margin="115,23,0,0">
             <TabItem Header="Components">
                 <Grid Background="#FFE5E5E5">
-                    <ListBox x:Name="lbComponents"/>
+                    <ListBox x:Name="lbComponents" SelectionChanged="lbComponents_SelectionChanged"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Board" IsSelected="True">
@@ -31,8 +31,8 @@
                 </Grid>
             </TabItem>
         </TabControl>
-        <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="22" Margin="22,234,0,0" VerticalAlignment="Top" Width="70" Orientation="Horizontal"/>
-        <Label x:Name="lbInfo" Content="" HorizontalAlignment="Left" Height="56" Margin="10,263,0,0" VerticalAlignment="Top" Width="92"/>
+        <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="27" Margin="10,229,0,0" VerticalAlignment="Top" Width="92" Orientation="Horizontal"/>
+        <Label x:Name="lbInfo" Content="" HorizontalAlignment="Left" Height="90" Margin="10,263,0,0" VerticalAlignment="Top" Width="92"/>
 
     </Grid>
 </Window>

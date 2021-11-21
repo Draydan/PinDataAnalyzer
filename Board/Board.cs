@@ -162,7 +162,9 @@ namespace PinBoard
             {
                 Pin pin = Pins[pi];
                 Regex rex = new(@"N_PIN\s" + pin.ComponentName + "_" + pin.Name + @"\s\d+\.\d+\s\d+\.\d+");
-                text = rex.Replace(text, $"N_PIN {pin.ComponentName}_{pin.Name} {Math.Round(pin.X, 3)} {Math.Round(pin.Y, 3)}");
+                text = rex.Replace(text, 
+                    $"N_PIN {pin.ComponentName}_{pin.Name} {Math.Round(pin.X, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))} "
+                    + $"{Math.Round(pin.Y, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))}");
             }
 
             if (endPin >= Pins.Count - 1)
