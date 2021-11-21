@@ -59,30 +59,35 @@ namespace PinDataAnalyzer
             // read pins to board object
             string path = inputFilePath;
             string problems = board.ReadPinsFromFile(path);
+
+            if (board.Pins.Count > 0)
+            {
+
+                ShowProgressThreaded("Loading.\nFilling components list", 10);
+
+                // write components to listbox
+                var components = board.Pins.GroupBy(pin => pin.ComponentName)
+                    .Select(group => new
+                    {
+                        component = group.Key,
+                        pins = group.Count()
+                    }
+                    ).OrderBy(grp => grp.component).ToList();
+
+                Dispatcher.Invoke(() =>
+                {
+                    lbComponents.ItemsSource = components;
+                });
+
+                ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
+                // draw pins to board canvas
+                DrawBoardThreaded();
+            }
+            ShowProgressThreaded("Loading\nfinished", 100);
+            
+            WorkInProgress(false);
             if (problems != string.Empty)
                 MessageBox.Show("While reading pins, some lines were misformed:\n" + problems);
-
-            ShowProgressThreaded("Loading.\nFilling components list", 10);
-
-            // write components to listbox
-            var components = board.Pins.GroupBy(pin => pin.ComponentName)
-                .Select(group => new
-                {
-                    component = group.Key,
-                    pins = group.Count()
-                }
-                ).OrderBy(grp => grp.component).ToList();
-
-            Dispatcher.Invoke(() =>
-            {
-                lbComponents.ItemsSource = components;
-            });
-
-            ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
-            // draw pins to board canvas
-            DrawBoardThreaded();
-            ShowProgressThreaded("Loading\nfinished", 100);
-            WorkInProgress(false);
         }
 
         /// <summary>
@@ -266,17 +271,26 @@ namespace PinDataAnalyzer
                 if (pi % refreshStep == 0)
                     ShowProgressThreaded("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
             }
+
             // lets write all extremal coordinates on board
 
             SolidColorBrush color = Brushes.Red;
             WriteOnBoard(board.MinX, board.MinY, $"({board.MinX}; {board.MinY})", color);
             DrawPointFigure(board.MinX, board.MinY, color);
 
-            //WriteOnBoard(board.MaxX, board.MaxY, $"({board.MaxX}; {board.MinY})", color);
-            //DrawPoint(x, y, Brushes.Blue);
+            WriteOnBoard(board.MaxX, board.MaxY, $"({board.MaxX}; {board.MaxY})", color);
+            DrawPointFigure(board.MaxX, board.MaxY, color);
 
             WriteOnBoard(board.MinX, board.MaxY, $"({board.MinX}; {board.MaxY})", color);
             DrawPointFigure(board.MinX, board.MaxY, color);
+
+            WriteOnBoard(board.MaxX, board.MinY, $"({board.MaxX}; {board.MinY})", color);
+            DrawPointFigure(board.MaxX, board.MinY, color);
+
+            double posY = board.CenterOfGravity().Y;
+            double posX = board.MaxX * 1.05;
+            WriteOnBoard(posX, posY, $"Gravity center: ({board.CenterOfGravity().X}; {posY})", color);
+            //DrawPointFigure(board.MaxX, posY, color);
         }
 
         /// <summary>

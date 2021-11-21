@@ -53,6 +53,17 @@ namespace PinBoard
         /// <summary>
         /// Rotate the points, by ‘n’ degrees, around a defined point in x and y
         /// </summary>
+        /// <param name="degreeTurn"></param>
+        /// <param name="xTurn"></param>
+        /// <param name="yTurn"></param>
+        public void Turn(float degreeTurn, float xTurn, float yTurn)
+        {
+            Turn(degreeTurn, xTurn, yTurn, 0, Pins.Count - 1);
+        }
+
+        /// <summary>
+        /// Rotate part of the points, by ‘n’ degrees, around a defined point in x and y
+        /// </summary>
         /// <param name="degree"></param>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -132,7 +143,6 @@ namespace PinBoard
                         {
                             returnText += pinDesc + "\n";
                         }
-
                     }
                 }
             }
