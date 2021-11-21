@@ -17,6 +17,7 @@ using System.IO;
 using PinBoard;
 using Microsoft.Win32;
 using System.Globalization;
+using System.Threading;
 //using System.Drawing;
 
 namespace PinDataAnalyzer
@@ -26,10 +27,23 @@ namespace PinDataAnalyzer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Board board;
 
+        #region constants and parameters
         // value from 0 to 100 to set it on progressbar when startint drawing pins
-        private const ushort progressOnPinningStart = 30;
+        private const ushort progressOnPinningStart = 50;
+
+        // filepaths to keep for a thread
+        private string inputFilePath, outputFilePath;
+
+        // each N-th pin will change progress bar
+        ushort refreshStep = 1000;
+
+        // rotation
+        float degree, centerX, centerY;
+        #endregion
+
+        private Board board;
+        private bool inProcess = false;
 
         public MainWindow()
         {
@@ -37,10 +51,38 @@ namespace PinDataAnalyzer
             board = new Board();
         }
 
-        private void ShowProgress(string info, ushort progress)
+        #region buttons and their actions
+        private void ThreadedOpeningAndReading()
         {
-            lbInfo.Content = info;
-            pbInfo.Value = progress;
+            WorkInProgress(true);
+            ShowProgressThreaded("Loading.\nReading file", 0);
+            // read pins to board object
+            string path = inputFilePath;
+            string problems = board.ReadPinsFromFile(path);
+            if (problems != string.Empty)
+                MessageBox.Show("While reading pins, some lines were misformed:\n" + problems);
+
+            ShowProgressThreaded("Loading.\nFilling components list", 10);
+
+            // write components to listbox
+            var components = board.Pins.GroupBy(pin => pin.ComponentName)
+                .Select(group => new
+                {
+                    component = group.Key,
+                    pins = group.Count()
+                }
+                ).OrderBy(grp => grp.component).ToList();
+
+            Dispatcher.Invoke(() =>
+            {
+                lbComponents.ItemsSource = components;
+            });
+
+            ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
+            // draw pins to board canvas
+            DrawBoardThreaded();
+            ShowProgressThreaded("Loading\nfinished", 100);
+            WorkInProgress(false);
         }
 
         /// <summary>
@@ -50,41 +92,162 @@ namespace PinDataAnalyzer
         /// <param name="e"></param>
         private void buttonChooseInputFile_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            if ((bool)ofd.ShowDialog())
+            try
             {
-                ShowProgress("Loading.\nReading file", 0);
-                // read pins to board object
-                string path = ofd.FileName;
-                string problems = board.ReadPinsFromFile(path);
-                if(problems != string.Empty)
-                    MessageBox.Show("While reading pins, some lines were misformed:\n" + problems);
+                OpenFileDialog ofd = new OpenFileDialog();
+                if ((bool)ofd.ShowDialog())
+                {
+                    inputFilePath = ofd.FileName;
+                    new Thread(new ThreadStart(ThreadedOpeningAndReading)).Start();
+                }
 
-                ShowProgress("Loading.\nFilling components list", 10);
-                // write components to listbox
-                var components = board.Pins.GroupBy(pin => pin.ComponentName)
-                    .Select( group => new
-                    {
-                        component = group.Key,
-                        pins = group.Count()
-                    }
-                    ).OrderBy(grp => grp.component).ToList();
-
-                lbComponents.ItemsSource = components;
-
-                ShowProgress("Loading.\nDrawing pins", progressOnPinningStart);
-                // draw pins to board canvas
-                DrawBoard();
-                ShowProgress("Loading\nfinished", 100);
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
+
+        /// <summary>
+        /// rotate board with pins
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void bRotate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {               
+                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
+                {
+                    MessageBox.Show("Bad format of degree");
+                    return;
+                }
+                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
+                {
+                    MessageBox.Show("Bad format of pivot x");
+                    return;
+                }
+                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
+                {
+                    MessageBox.Show("Bad format of pivot y");
+                    return;
+                }
+                new Thread(new ThreadStart(ThreadedRotation)).Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+
+        }
+
+        /// <summary>
+        /// Rotation of pins, drawing and showing progress
+        /// </summary>
+        private void ThreadedRotation()
+        {
+            WorkInProgress(true);
+
+            int pinCount = board.Pins.Count;
+            // write portions of pins and show progress with each portion
+            for (int pi = 0; pi < pinCount; pi += refreshStep)
+            {
+                board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
+                ShowProgressThreaded("Rotating", progress: (ushort)((progressOnPinningStart) * pi / pinCount));
+            }
+            ShowProgressThreaded("Drawing", progressOnPinningStart);
+            DrawBoardThreaded();
+            ShowProgressThreaded("Rotation\nfinished", 100);
+            WorkInProgress(false);
+        }
+
+        /// <summary>
+        /// Threaded Process click of button to write file
+        /// </summary>
+        private void ThreadedWritingProgress()
+        {
+            WorkInProgress(true);
+            int pinCount = board.Pins.Count;
+            // write portions of pins and show progress with each portion
+            for (int pi = 0; pi < pinCount; pi += refreshStep)
+            {
+                board.WritePinsToFile(outputFilePath, pi, pi + refreshStep);
+                ShowProgressThreaded("Writing file", progress: (ushort)(100 * pi / pinCount));
+            }
+            ShowProgressThreaded("File written", 100);
+            WorkInProgress(false);
+        }
+
+        /// <summary>
+        /// Process click of button to write file
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void bChooseOutputFile_Click(object sender, RoutedEventArgs e)
+        {
+            
+            try
+            {
+                SaveFileDialog fd = new SaveFileDialog();
+                if ((bool)fd.ShowDialog())
+                {
+                    outputFilePath = fd.FileName;
+                    Thread tred = new Thread(new ThreadStart(ThreadedWritingProgress));
+                    tred.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }            
+        }
+
+        #endregion
+
+        #region visual controls
+
+        /// <summary>
+        /// Set progress bar and write some info on label from another thread
+        /// </summary>
+        /// <param name="info"></param>
+        /// <param name="progress"></param>
+        private void ShowProgressThreaded(string info, ushort progress)
+        {
+            Dispatcher.Invoke(() =>
+                    {
+                        ShowProgress(info, progress);
+                    });
+        }
+
+        /// <summary>
+        /// Set progress bar and write some info on label
+        /// </summary>
+        /// <param name="info"></param>
+        /// <param name="progress"></param>
+        private void ShowProgress(string info, ushort progress)
+        {
+            lbInfo.Content = info;
+            pbInfo.Value = progress;
+        }
+
+        /// <summary>
+        /// draw pins on board canvas in a thread
+        /// </summary>
+        void DrawBoardThreaded()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                DrawBoard();
+            });
         }
 
         /// <summary>
         /// draw pins on board canvas
         /// </summary>
         void DrawBoard()
-        {            
+        {
             cBoard.Children.Clear();
+
             // draw pins to board canvas
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
             float minX = board.Pins.Min(pin => pin.X);
@@ -92,8 +255,8 @@ namespace PinDataAnalyzer
 
             int pinCount = board.Pins.Count;
 
-            // each N-th pin will change progress bar
-            ushort refreshStep = 2000;
+            //// each N-th pin will change progress bar
+            //ushort refreshStep = 2000;
 
             for (int pi = 0; pi < pinCount; pi++)
             //foreach (Pin pin in board.Pins)
@@ -101,10 +264,10 @@ namespace PinDataAnalyzer
                 Pin pin = board.Pins[pi];
                 DrawPin(pin.X, pin.Y);
                 if (pi % refreshStep == 0)
-                    ShowProgress("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
+                    ShowProgressThreaded("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
             }
             // lets write all extremal coordinates on board
-            
+
             SolidColorBrush color = Brushes.Red;
             WriteOnBoard(board.MinX, board.MinY, $"({board.MinX}; {board.MinY})", color);
             DrawPointFigure(board.MinX, board.MinY, color);
@@ -188,54 +351,20 @@ namespace PinDataAnalyzer
         }
 
         /// <summary>
-        /// rotate board with pins
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void bRotate_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                float degree, centerX, centerY;
-                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
-                {
-                    MessageBox.Show("Bad format of degree");
-                    return;
-                }
-                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
-                {
-                    MessageBox.Show("Bad format of pivot x");
-                    return;
-                }                
-                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
-                {
-                    MessageBox.Show("Bad format of pivot y");
-                    return;
-                }
-                board.Turn(degree, centerX, centerY);
-                DrawBoard();
-                ShowProgress("Rotation\nfinished", 100);
-            }
-            catch(Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
-        }
-
-        /// <summary>
         /// moving mouse, showing coordinates
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void cBoard_MouseMove(object sender, MouseEventArgs e)
         {
-            if (board.Pins.Count > 0)
-            {
-                // as screen coordinates are mirrored along Y axis, some transformations are necessary
-                Point mp = e.GetPosition(cBoard);
-                System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
-                lbInfo.Content = $"Mouse:\nX={p.X};\nY={p.Y}";
-            }
+            if (!inProcess)
+                if (board.Pins.Count > 0)
+                {
+                    // as screen coordinates are mirrored along Y axis, some transformations are necessary
+                    Point mp = e.GetPosition(cBoard);
+                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                    lbInfo.Content = $"Mouse:\nX={p.X};\nY={p.Y}";
+                }
         }
 
         /// <summary>
@@ -245,36 +374,54 @@ namespace PinDataAnalyzer
         /// <param name="e"></param>
         private void cBoard_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (board.Pins.Count > 0)
-            {
-                Point mp = e.GetPosition(cBoard);
-                System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
-                tbAroundX.Text = ((int)p.X).ToString();
-                tbAroundY.Text = ((int)p.Y).ToString();
-
-                //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
-            }
-        }
-
-        private void bChooseOutputFile_Click(object sender, RoutedEventArgs e)
-        {
-            SaveFileDialog fd = new SaveFileDialog();
-            
-            if ((bool)fd.ShowDialog())
-            {
-                int pinCount = board.Pins.Count;
-
-                // each N-th pin will change progress bar
-                ushort refreshStep = 1000;
-
-                for (int pi = 0; pi < pinCount; pi += refreshStep)
+            if (!inProcess)
+                if (board.Pins.Count > 0)
                 {
-                    board.WritePinsToFile(fd.FileName, pi, pi + refreshStep);
-                    ShowProgress("Writing file", (ushort)(100 * pi / pinCount));
+                    Point mp = e.GetPosition(cBoard);
+                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                    tbAroundX.Text = ((int)p.X).ToString();
+                    tbAroundY.Text = ((int)p.Y).ToString();
+
+                    //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
                 }
-                //MessageBox.Show("File written");
-                ShowProgress("File written", 100);
-            }
         }
+
+        /// <summary>
+        /// disable some controls when work is in progress
+        /// </summary>
+        /// <param name="wip">work IS in progress</param>
+        private void WorkInProgress(bool wip)
+        {
+            inProcess = wip;
+            Dispatcher.Invoke(() =>
+            {
+                ButtonsEnability(!wip);
+            });
+        }
+
+        /// <summary>
+        /// enable or disable all buttons
+        /// </summary>
+        /// <param name="be">enability status to set</param>
+        private void ButtonsEnability(bool be)
+        {
+            IEnumerable<Button> buttons = MainGrid.Children.OfType<Button>();
+            foreach (Button butn in buttons)
+                butn.IsEnabled = be;
+        }
+
+        /// <summary>
+        /// enable or disable buttons specifically
+        /// </summary>
+        /// <param name="beOpen">enability status of "Open File" to set</param>
+        /// <param name="beRotate">enability status of "Rotate" to set</param>
+        /// <param name="beWrite">enability status of "Write File" to set</param>
+        private void ButtonsEnability(bool beOpen, bool beRotate, bool beWrite)
+        {
+            bChooseInputFile.IsEnabled = beOpen;
+            bRotate.IsEnabled = beRotate;
+            bChooseOutputFile.IsEnabled = beWrite;
+        }
+        #endregion
     }
 }

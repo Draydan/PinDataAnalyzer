@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:PinDataAnalyzer"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid Margin="0,0,0,0">
+    <Grid x:Name="MainGrid" Margin="0,0,0,0">
         <Border BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Left" Height="98" Margin="10,229,0,0" VerticalAlignment="Top" Width="92"/>
 
         <Rectangle HorizontalAlignment="Left" Height="122" Margin="10,51,0,0" Stroke="Black" VerticalAlignment="Top" Width="92"/>
@@ -31,7 +31,7 @@
                 </Grid>
             </TabItem>
         </TabControl>
-        <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="22" Margin="10,234,0,0" VerticalAlignment="Top" Width="92" Orientation="Horizontal"/>
+        <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="22" Margin="22,234,0,0" VerticalAlignment="Top" Width="70" Orientation="Horizontal"/>
         <Label x:Name="lbInfo" Content="" HorizontalAlignment="Left" Height="56" Margin="10,263,0,0" VerticalAlignment="Top" Width="92"/>
 
     </Grid>

@@ -56,10 +56,12 @@ namespace PinBoard
         /// <param name="degree"></param>
         /// <param name="x"></param>
         /// <param name="y"></param>
-        public void Turn(float degreeTurn, float xTurn, float yTurn)
+        public void Turn(float degreeTurn, float xTurn, float yTurn, int startPin, int endPin)
         {
-            foreach (Pin pin in Pins)
+            for (int pi = startPin; pi <= endPin && pi < Pins.Count; pi++)
             {
+                Pin pin = Pins[pi];
+                
                 float x0 = pin.X;
                 float y0 = pin.Y;
                 // coordinates relative to turn point
@@ -138,11 +140,11 @@ namespace PinBoard
         }
 
         /// <summary>
-        /// Write turned pin coordinates into new file
+        /// Write portion of pins' coordinates into new file
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="startPin"></param>
-        /// <param name="endPin"></param>
+        /// <param name="path">path to write</param>
+        /// <param name="startPin">portion start</param>
+        /// <param name="endPin">portion end</param>
         public void WritePinsToFile(string path, int startPin, int endPin)
         {
             //            foreach(Pin pin in Pins)
