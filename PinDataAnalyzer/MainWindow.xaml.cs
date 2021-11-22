@@ -39,7 +39,7 @@ namespace PinDataAnalyzer
         private string inputFilePath, outputFilePath;
 
         // each N-th pin will change progress bar
-        ushort refreshStep = 1000;
+        ushort refreshStep = 2000;
 
         // rotation
         float degree, centerX, centerY;
@@ -63,7 +63,7 @@ namespace PinDataAnalyzer
                 pivotPoly.Points.Add(new Point(0, 0));
             pivotPoly.Stroke = Brushes.Red;
 
-            selectedComponentFigure = new ();
+            selectedComponentFigure = new();
             for (int i = 0; i < 4; i++)
                 selectedComponentFigure.Points.Add(new Point(0, 0));
             selectedComponentFigure.Stroke = Brushes.Red;
@@ -80,14 +80,23 @@ namespace PinDataAnalyzer
         private void ThreadedOpeningAndReading()
         {
             WorkInProgress(true);
-            ShowProgressThreaded("Loading.\nReading file", progressOnPinningStart / 6);
+            ShowProgressThreaded("Loading.\nReading file", progressOnPinningStart / 15);
             // read pins to board object
             string path = inputFilePath;
-            string problems = board.ReadPinsFromFile(path);
+            board.ReadFromFile(path);
+            ShowProgressThreaded("Loading.\nReading file", progressOnPinningStart / 10);
+
+            string problems = "";
+            int textLineCount = board.texts.Count;
+            for (int ti = 0; ti < textLineCount; ti += refreshStep)
+            {
+                problems += board.LoadPins(ti, ti + refreshStep);
+                ShowProgressThreaded("Loading\nfile data", (ushort)(progressOnPinningStart /10 +  (float)ti / textLineCount));
+            }
 
             if (board.Pins.Count > 0)
             {
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart/3);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart / 2);
 
                 // write components to listbox
                 var components = board.Pins.GroupBy(pin => pin.ComponentName)
@@ -98,7 +107,7 @@ namespace PinDataAnalyzer
                     }
                     ).OrderByDescending(grp => grp.pins).ToList();
 
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart/2);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart / 2);
 
                 //Dispatcher.Invoke(() =>
                 //{
@@ -111,7 +120,7 @@ namespace PinDataAnalyzer
                     {
                         lbComponents.Items.Add(components[ci]);
                     });
-                    if(ci % refreshStep == 0)
+                    if (ci % refreshStep == 0)
                         ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", (ushort)(progressOnPinningStart / 2 * (1 + (float)ci / componentsCount)));
                 }
 
@@ -129,7 +138,7 @@ namespace PinDataAnalyzer
                 });
             }
             ShowProgressThreaded($"Loading\nfinished\n{board.Pins.Count} Pins\nloaded", 100);
-            
+
             WorkInProgress(false);
             if (problems != string.Empty)
                 MessageBox.Show("While reading pins, some lines were misformed:\n" + problems);
@@ -168,10 +177,12 @@ namespace PinDataAnalyzer
         {
             try
             {
+                //WorkInProgress(true);
+                ShowProgressThreaded("Rotating", 0);
                 CheckTextBoxes();
                 if (board.Pins.Count > 0)
                 {
-                    WorkInProgress(true);
+                    //WorkInProgress(true);
                     ShowProgressThreaded("Rotating", 0);
                     new Thread(new ThreadStart(ThreadedRotation)).Start();
                 }
@@ -180,7 +191,9 @@ namespace PinDataAnalyzer
             {
                 MessageBox.Show(ex.ToString());
             }
-
+            finally
+            {
+            }
         }
 
         /// <summary>
@@ -188,14 +201,15 @@ namespace PinDataAnalyzer
         /// </summary>
         private void ThreadedRotation()
         {
+            ShowProgressThreaded("Rotating", 10);
             WorkInProgress(true);
-
             int pinCount = board.Pins.Count;
             // write portions of pins and show progress with each portion
             for (int pi = 0; pi < pinCount; pi += refreshStep)
             {
+                string info = "Rotating"; //$"Rotating\n{pi} of {pinCount}"
+                ShowProgressThreaded(info, progress: (ushort)((progressOnPinningStart) * (float)pi / pinCount));
                 board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
-                ShowProgressThreaded("Rotating", progress: (ushort)((progressOnPinningStart) * (float)pi / pinCount));
             }
             ShowProgressThreaded("Drawing", progressOnPinningStart);
             DrawBoardThreaded();
@@ -204,8 +218,8 @@ namespace PinDataAnalyzer
             {
                 MoveSelectedComponentToDefault();
                 MoveSelectedComponentVisuals();
-                
             });
+
             WorkInProgress(false);
         }
 
@@ -233,7 +247,7 @@ namespace PinDataAnalyzer
         /// <param name="e"></param>
         private void bChooseOutputFile_Click(object sender, RoutedEventArgs e)
         {
-            
+
             try
             {
                 SaveFileDialog fd = new SaveFileDialog();
@@ -247,7 +261,7 @@ namespace PinDataAnalyzer
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
-            }            
+            }
         }
 
         #endregion
@@ -446,7 +460,7 @@ namespace PinDataAnalyzer
                 Pin pin = board.Pins[pi];
                 DrawPin(pin.X, pin.Y);
                 if (pi % refreshStep == 0)
-                    ShowProgressThreaded("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
+                    ShowProgress("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
             }
 
             // lets write all extremal coordinates on board
@@ -485,17 +499,17 @@ namespace PinDataAnalyzer
         /// </summary>
         /// <param name="componentName"></param>
         private void MoveSelectedComponentVisuals(string componentName = "")
-        {            
+        {
             if (componentName == "")
             {
                 // exit if selection empty
-                if(lbComponents.SelectedIndex != -1)
+                if (lbComponents.SelectedIndex != -1)
                     componentName = GetSelectedComponentName();
                 else
                 {
                     return;
                 }
-            }            
+            }
 
             List<Pin> thisComponentPins = board.Pins.Where(pin => pin.ComponentName == componentName).ToList();
             float MaxX = board.BoardToCanvasX(thisComponentPins.Max(pin => pin.X));
@@ -512,7 +526,7 @@ namespace PinDataAnalyzer
             selectedComponentFigure.Points[0] = new(MaxX, MaxY);
             selectedComponentFigure.Points[1] = new(MaxX, MinY);
             selectedComponentFigure.Points[2] = new(MinX, MinY);
-            selectedComponentFigure.Points[3] = new(MinX, MaxY);            
+            selectedComponentFigure.Points[3] = new(MinX, MaxY);
         }
 
         /// <summary>
@@ -630,8 +644,8 @@ namespace PinDataAnalyzer
             int x = board.BoardToCanvasX(bx);
             int y = board.BoardToCanvasY(by);
 
-            Point point = new (x, y);
-            Ellipse figure = new ();
+            Point point = new(x, y);
+            Ellipse figure = new();
             //Rectangle fig = new Rectangle();
 
             figure.Width = radius * 2;

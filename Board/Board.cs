@@ -12,9 +12,8 @@ namespace PinBoard
 {
     public class Board
     {
-        // full text of file
-        private string text;
-        private List<string> texts;
+        // full text of file in lines        
+        public List<string> texts;
 
         public Board()
         {
@@ -111,14 +110,13 @@ namespace PinBoard
 
             using (StreamReader sr = new(readPath))
             {
-                text = "";
                 texts = new List<string>();
                 int lineIndex = 0;
                 while (!sr.EndOfStream)
                 {
                     string fileLine = sr.ReadLine();
                     // saving file text for further saving
-                    text += fileLine + "\n";
+                    
                     texts.Add(fileLine);                    
 
                     string pinDesc = fileLine.Replace("N_PIN ", "");
@@ -156,6 +154,83 @@ namespace PinBoard
                     }
                     lineIndex++;
                 }
+            }
+            return returnText;
+        }
+        /// <summary>
+        /// Read file
+        /// </summary>
+        /// <param name="path"></param>
+        public void ReadFromFile(string path)
+        {
+            Pins = new List<Pin>();
+
+            string readPath = path;
+
+            using (StreamReader sr = new(readPath))
+            {
+                texts = new List<string>();                
+                while (!sr.EndOfStream)
+                {
+                    string fileLine = sr.ReadLine();
+                    // saving file text for further saving
+                    texts.Add(fileLine);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Read portion of pins from saved text and return any misformed data as string
+        /// </summary>
+        /// <param name="startLine"></param>
+        /// <param name="endLine"></param>
+        /// <returns>joined text of wrongful data lines</returns> 
+        public string LoadPins(int startLine, int endLine)
+        {
+            if(startLine == 0)
+                Pins = new List<Pin>();
+
+            string returnText = "";
+                        
+            //texts = new List<string>();
+
+            for (int li = startLine; li < texts.Count && li < endLine; li++)
+            {
+                string fileLine = texts[li];
+
+                string pinDesc = fileLine.Replace("N_PIN ", "");
+                if (fileLine.Length > pinDesc.Length)
+                {
+                    string[] pinData = pinDesc.Split(' ');
+
+                    //  ignoring any unconventional pin descriptions
+                    if (pinData.Length == 3)
+                    {
+                        string names = pinData[0];
+                        string px = pinData[1];
+                        string py = pinData[2];
+
+                        try
+                        {
+                            // adding pin
+                            float pxf, pyf;
+                            if (Helper.TryParseGBFloat(px, out pxf) && Helper.TryParseGBFloat(py, out pyf))
+                                AddPin(pxf, pyf, names, li);
+                            else
+                                //  catching any unparseable pin descriptions
+                                returnText += pinDesc + "\n";
+                        }
+                        catch
+                        {
+                            //  catching any problematic pin descriptions
+                            returnText += pinDesc + "\n";
+                        }
+                    }
+                    else
+                    {
+                        returnText += pinDesc + "\n";
+                    }
+                }                
             }
             return returnText;
         }
