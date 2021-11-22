@@ -14,6 +14,7 @@ namespace PinBoard
     {
         // full text of file
         private string text;
+        private List<string> texts;
 
         public Board()
         {
@@ -29,14 +30,15 @@ namespace PinBoard
         /// </summary>
         /// <param name="px">Pin x</param>
         /// <param name="py">Pin y</param>
-        /// <param name="names">Joined names of component and pin</param>
-        public void AddPin(float px, float py, string names)
+        /// <param name="names">Joined names of component and pin</param>       
+        /// <param name="lineIndex">Line Index In File</param>
+        public void AddPin(float px, float py, string names, int lineIndex)
         {
             string[] namesplit = names.Split('_');
             // After N_PIN there may be some text that can't be split like this.
             // But I dont know what you want to do if its like this.
             // So I'm not adding any specific processing of that error here.
-            Pins.Add(new Pin { X = px, Y = py, ComponentName = namesplit[0], Name = namesplit[1] });
+            Pins.Add(new Pin { X = px, Y = py, ComponentName = namesplit[0], Name = namesplit[1], lineIndexInFile = lineIndex });
         }
 
         /// <summary>
@@ -69,9 +71,12 @@ namespace PinBoard
         /// <param name="y"></param>
         public void Turn(float degreeTurn, float xTurn, float yTurn, int startPin, int endPin)
         {
-            for (int pi = startPin; pi <= endPin && pi < Pins.Count; pi++)
+            for (int pi = startPin; pi < endPin && pi < Pins.Count; pi++)
             {
                 Pin pin = Pins[pi];
+
+                if (pin.ComponentName == "X2J2")
+                    Console.WriteLine("found you");
                 
                 float x0 = pin.X;
                 float y0 = pin.Y;
@@ -107,10 +112,15 @@ namespace PinBoard
             using (StreamReader sr = new(readPath))
             {
                 text = "";
+                texts = new List<string>();
+                int lineIndex = 0;
                 while (!sr.EndOfStream)
                 {
                     string fileLine = sr.ReadLine();
+                    // saving file text for further saving
                     text += fileLine + "\n";
+                    texts.Add(fileLine);                    
+
                     string pinDesc = fileLine.Replace("N_PIN ", "");
                     if (fileLine.Length > pinDesc.Length)
                     {
@@ -128,7 +138,7 @@ namespace PinBoard
                                 // adding pin
                                 float pxf, pyf;
                                 if (Helper.TryParseGBFloat(px, out pxf) && Helper.TryParseGBFloat(py, out pyf))
-                                    AddPin(pxf, pyf, names);
+                                    AddPin(pxf, pyf, names, lineIndex);
                                 else
                                     //  catching any unparseable pin descriptions
                                     returnText += pinDesc + "\n";
@@ -144,6 +154,7 @@ namespace PinBoard
                             returnText += pinDesc + "\n";
                         }
                     }
+                    lineIndex++;
                 }
             }
             return returnText;
@@ -158,19 +169,28 @@ namespace PinBoard
         public void WritePinsToFile(string path, int startPin, int endPin)
         {
             //            foreach(Pin pin in Pins)
-            for (int pi = startPin; pi <= endPin && pi < Pins.Count; pi++)
+            for (int pi = startPin; pi < endPin && pi < Pins.Count; pi++)
             {
                 Pin pin = Pins[pi];
-                Regex rex = new(@"N_PIN\s" + pin.ComponentName + "_" + pin.Name + @"\s\d+\.\d+\s\d+\.\d+");
-                text = rex.Replace(text, 
-                    $"N_PIN {pin.ComponentName}_{pin.Name} {Math.Round(pin.X, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))} "
-                    + $"{Math.Round(pin.Y, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))}");
+                //if (pin.ComponentName == "X2J2")
+                //    Console.WriteLine("found you");                
+                //Regex rex = new(@"N_PIN\s" + pin.ComponentName + "_" + pin.Name + @"\s-?\d+\.\d+\s-?\d+\.\d+");
+                ////string textLine =
+                //int ind = texts.FindIndex(lin => lin.Contains(pin.ComponentName + "_" + pin.Name));
+                ////text = rex.Replace(text, 
+                ////    $"N_PIN {pin.ComponentName}_{pin.Name} {Math.Round(pin.X, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))} "
+                ////    + $"{Math.Round(pin.Y, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))}");
+
+                texts[pin.lineIndexInFile] =  $"N_PIN {pin.ComponentName}_{pin.Name} {Math.Round(pin.X, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))} "
+                    + $"{Math.Round(pin.Y, 3).ToString(CultureInfo.GetCultureInfo("en-GB"))}";
+
             }
 
             if (endPin >= Pins.Count - 1)
                 using (StreamWriter sw = new(path, append: false))
                 {
-                    sw.Write(text);
+                    foreach(string textLine in texts)
+                        sw.WriteLine(textLine);
                 }
         }
 

@@ -50,17 +50,27 @@ namespace PinDataAnalyzer
 
         private Board board;
         private Polyline pivotPoly;
-        private Rectangle componentSelected;
+        private Polygon selectedComponentFigure;
 
         public MainWindow()
         {
             InitializeComponent();
             board = new Board();
 
-            PivotToDefault();
-            componentSelected = new Rectangle();
-            componentSelected.Stroke = Brushes.Orange;
-            cBoard.Children.Add(componentSelected);
+            // pivot to 0
+            pivotPoly = new Polyline();
+            for (int i = 0; i < 3; i++)
+                pivotPoly.Points.Add(new Point(0, 0));
+            pivotPoly.Stroke = Brushes.Red;
+
+            selectedComponentFigure = new ();
+            for (int i = 0; i < 4; i++)
+                selectedComponentFigure.Points.Add(new Point(0, 0));
+            selectedComponentFigure.Stroke = Brushes.Red;
+
+            //MoveSelectedComponentToDefault();
+
+            cBoard.Children.Add(selectedComponentFigure);
         }
 
         #region buttons and their actions
@@ -70,14 +80,14 @@ namespace PinDataAnalyzer
         private void ThreadedOpeningAndReading()
         {
             WorkInProgress(true);
-            ShowProgressThreaded("Loading.\nReading file", 10);
+            ShowProgressThreaded("Loading.\nReading file", progressOnPinningStart / 6);
             // read pins to board object
             string path = inputFilePath;
             string problems = board.ReadPinsFromFile(path);
 
             if (board.Pins.Count > 0)
             {
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 25);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart/3);
 
                 // write components to listbox
                 var components = board.Pins.GroupBy(pin => pin.ComponentName)
@@ -86,14 +96,24 @@ namespace PinDataAnalyzer
                         component = group.Key,
                         pins = group.Count()
                     }
-                    ).OrderBy(grp => grp.component).ToList();
+                    ).OrderByDescending(grp => grp.pins).ToList();
 
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 40);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart/2);
 
-                Dispatcher.Invoke(() =>
+                //Dispatcher.Invoke(() =>
+                //{
+                //    lbComponents.ItemsSource = components;
+                //});
+                int componentsCount = components.Count;
+                for (int ci = 0; ci < componentsCount; ci++)
                 {
-                    lbComponents.ItemsSource = components;
-                });
+                    Dispatcher.Invoke(() =>
+                    {
+                        lbComponents.Items.Add(components[ci]);
+                    });
+                    if(ci % refreshStep == 0)
+                        ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", (ushort)(progressOnPinningStart / 2 * (1 + (float)ci / componentsCount)));
+                }
 
                 ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
                 // draw pins to board canvas
@@ -149,8 +169,12 @@ namespace PinDataAnalyzer
             try
             {
                 CheckTextBoxes();
-                if(board.Pins.Count>0)
+                if (board.Pins.Count > 0)
+                {
+                    WorkInProgress(true);
+                    ShowProgressThreaded("Rotating", 0);
                     new Thread(new ThreadStart(ThreadedRotation)).Start();
+                }
             }
             catch (Exception ex)
             {
@@ -171,11 +195,17 @@ namespace PinDataAnalyzer
             for (int pi = 0; pi < pinCount; pi += refreshStep)
             {
                 board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
-                ShowProgressThreaded("Rotating", progress: (ushort)((progressOnPinningStart) * pi / pinCount));
+                ShowProgressThreaded("Rotating", progress: (ushort)((progressOnPinningStart) * (float)pi / pinCount));
             }
             ShowProgressThreaded("Drawing", progressOnPinningStart);
             DrawBoardThreaded();
             ShowProgressThreaded("Rotation\nfinished", 100);
+            Dispatcher.Invoke(() =>
+            {
+                MoveSelectedComponentToDefault();
+                MoveSelectedComponentVisuals();
+                
+            });
             WorkInProgress(false);
         }
 
@@ -223,7 +253,6 @@ namespace PinDataAnalyzer
         #endregion
 
         #region visual controls
-
         /// <summary>
         /// Set progress bar and write some info on label from another thread
         /// </summary>
@@ -248,6 +277,144 @@ namespace PinDataAnalyzer
             pbInfo.Value = progress;
         }
 
+        /// <summary>
+        /// moving mouse, showing coordinates
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void cBoard_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!inProcess)
+                if (board.Pins.Count > 0)
+                {
+                    // as screen coordinates are mirrored along Y axis, some transformations are necessary
+                    Point mp = e.GetPosition(cBoard);
+                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                    lbInfo.Content = $"Mouse:\nX={p.X};\nY={p.Y}";
+                }
+        }
+
+        /// <summary>
+        /// click to get coordinates for rotation
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void cBoard_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!inProcess)
+                if (board.Pins.Count > 0)
+                {
+                    Point mp = e.GetPosition(cBoard);
+                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                    tbAroundX.Text = ((int)p.X).ToString();
+                    tbAroundY.Text = ((int)p.Y).ToString();
+
+                    //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
+                    MovePivot();
+                }
+        }
+
+        /// <summary>
+        /// one of text boxes was changed
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void TextBoxChanged(object sender, TextChangedEventArgs e)
+        {
+            CheckTextBoxes();
+            MovePivot();
+        }
+
+        /// <summary>
+        /// checking text boxes for format of values
+        /// </summary>
+        private void CheckTextBoxes()
+        {
+            if (tbDegree != null && tbAroundX != null && tbAroundY != null)
+            {
+                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
+                {
+                    MessageBox.Show("Bad format of degree");
+                    return;
+                }
+                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
+                {
+                    MessageBox.Show("Bad format of pivot x");
+                    return;
+                }
+                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
+                {
+                    MessageBox.Show("Bad format of pivot y");
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// get name of component selected in listbox
+        /// </summary>
+        /// <returns></returns>
+        private string GetSelectedComponentName()
+        {
+            string selectedComponentLine = lbComponents.SelectedItem.ToString();
+            //MessageBox.Show(selectedComponentLine);
+            string componentName = selectedComponentLine.Split(", pins")[0];
+            componentName = componentName.Replace("{ component = ", "");
+            //{ component = "BL13", pins = 1 }
+            return componentName;
+        }
+
+        /// <summary>
+        /// process selection in component list
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void lbComponents_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            MoveSelectedComponentVisuals(GetSelectedComponentName());
+            tabControl.SelectedIndex = 1;
+            cBoard.Focus();
+        }
+
+        /// <summary>
+        /// disable some controls when work is in progress
+        /// </summary>
+        /// <param name="wip">work IS in progress</param>
+        private void WorkInProgress(bool wip)
+        {
+            inProcess = wip;
+            Dispatcher.Invoke(() =>
+            {
+                ButtonsEnability(!wip);
+            });
+        }
+
+        /// <summary>
+        /// enable or disable all buttons
+        /// </summary>
+        /// <param name="be">enability status to set</param>
+        private void ButtonsEnability(bool be)
+        {
+            IEnumerable<Button> buttons = MainGrid.Children.OfType<Button>();
+            foreach (Button butn in buttons)
+                butn.IsEnabled = be;
+        }
+
+        /// <summary>
+        /// enable or disable buttons specifically
+        /// </summary>
+        /// <param name="beOpen">enability status of "Open File" to set</param>
+        /// <param name="beRotate">enability status of "Rotate" to set</param>
+        /// <param name="beWrite">enability status of "Write File" to set</param>
+        private void ButtonsEnability(bool beOpen, bool beRotate, bool beWrite)
+        {
+            bLoadFile.IsEnabled = beOpen;
+            bRotate.IsEnabled = beRotate;
+            bWriteFile.IsEnabled = beWrite;
+        }
+        #endregion
+
+        #region drawing stuff
         /// <summary>
         /// draw pins on board canvas in a thread
         /// </summary>
@@ -309,25 +476,43 @@ namespace PinDataAnalyzer
 
             MovePivot();
             cBoard.Children.Add(pivotPoly);
+
+            cBoard.Children.Add(selectedComponentFigure);
         }
 
         /// <summary>
         /// move visualization of component according to its name
         /// </summary>
         /// <param name="componentName"></param>
-        private void MoveSelectedComponentVisuals(string componentName)
-        {
+        private void MoveSelectedComponentVisuals(string componentName = "")
+        {            
+            if (componentName == "")
+            {
+                // exit if selection empty
+                if(lbComponents.SelectedIndex != -1)
+                    componentName = GetSelectedComponentName();
+                else
+                {
+                    return;
+                }
+            }            
+
             List<Pin> thisComponentPins = board.Pins.Where(pin => pin.ComponentName == componentName).ToList();
             float MaxX = board.BoardToCanvasX(thisComponentPins.Max(pin => pin.X));
             float MaxY = board.BoardToCanvasY(thisComponentPins.Max(pin => pin.Y));
             float MinX = board.BoardToCanvasX(thisComponentPins.Min(pin => pin.X));
             float MinY = board.BoardToCanvasY(thisComponentPins.Min(pin => pin.Y));
 
-            componentSelected.Width = MaxX - MinX;
-            componentSelected.Height = Math.Abs(MaxY - MinY);
-            Canvas.SetLeft(componentSelected, MinX);
-            // just in case we change smth in the future and max will swap with min again
-            Canvas.SetTop(componentSelected, (MaxY<MinY)?(MaxY):(MinY));
+            //selectedComponentFigure.Width = MaxX - MinX;
+            //selectedComponentFigure.Height = Math.Abs(MaxY - MinY);
+            //Canvas.SetLeft(selectedComponentFigure, MinX);
+            //// just in case we change smth in the future and max will swap with min again
+            //Canvas.SetTop(selectedComponentFigure, (MaxY < MinY) ? (MaxY) : (MinY));
+
+            selectedComponentFigure.Points[0] = new(MaxX, MaxY);
+            selectedComponentFigure.Points[1] = new(MaxX, MinY);
+            selectedComponentFigure.Points[2] = new(MinX, MinY);
+            selectedComponentFigure.Points[3] = new(MinX, MaxY);            
         }
 
         /// <summary>
@@ -357,12 +542,34 @@ namespace PinDataAnalyzer
             }
         }
 
+        /// <summary>
+        /// park pivot visual at zero
+        /// </summary>
         private void PivotToDefault()
         {
-            pivotPoly = new Polyline();
+            ////pivotPoly = new Polyline();
+            //for (int i = 0; i < 3; i++)
+            //    pivotPoly.Points.Add(new Point(0, 0));
+            //pivotPoly.Stroke = Brushes.Red;
             for (int i = 0; i < 3; i++)
-                pivotPoly.Points.Add(new Point(0, 0));
-            pivotPoly.Stroke = Brushes.Red;
+                pivotPoly.Points[i] = new(0, 0);
+        }
+
+        /// <summary>
+        /// Move Selected Component To Default Position (usually 0)
+        /// </summary>
+        private void MoveSelectedComponentToDefault()
+        {
+            //// selected component to 0
+            for (int i = 0; i < 4; i++)
+                selectedComponentFigure.Points[i] = new(0, 0);
+            //selectedComponentFigure = new Rectangle();
+            //selectedComponentFigure.Stroke = Brushes.Red;
+            //int tempSize = 0;
+            //selectedComponentFigure.Width = tempSize;
+            //selectedComponentFigure.Height = tempSize;
+            //Canvas.SetLeft(selectedComponentFigure, tempSize);
+            //Canvas.SetTop(selectedComponentFigure, tempSize);
         }
 
         /// <summary>
@@ -381,7 +588,7 @@ namespace PinDataAnalyzer
 
             //(int)(pin.X - minX), (int)(maxY - pin.Y)
 
-            TextBlock textBlock = new TextBlock();
+            TextBlock textBlock = new();
             textBlock.Text = text;
             textBlock.Foreground = color;
             Canvas.SetLeft(textBlock, cx);
@@ -423,8 +630,8 @@ namespace PinDataAnalyzer
             int x = board.BoardToCanvasX(bx);
             int y = board.BoardToCanvasY(by);
 
-            Point point = new Point(x, y);
-            Ellipse figure = new Ellipse();
+            Point point = new (x, y);
+            Ellipse figure = new ();
             //Rectangle fig = new Rectangle();
 
             figure.Width = radius * 2;
@@ -435,127 +642,8 @@ namespace PinDataAnalyzer
             figure.Margin = new Thickness(point.X - radius, point.Y - radius, 0, 0);
             cBoard.Children.Add(figure);
         }
-
-        /// <summary>
-        /// moving mouse, showing coordinates
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void cBoard_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (!inProcess)
-                if (board.Pins.Count > 0)
-                {
-                    // as screen coordinates are mirrored along Y axis, some transformations are necessary
-                    Point mp = e.GetPosition(cBoard);
-                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
-                    lbInfo.Content = $"Mouse:\nX={p.X};\nY={p.Y}";
-                }
-        }
-
-        /// <summary>
-        /// click to get coordinates for rotation
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void cBoard_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!inProcess)
-                if (board.Pins.Count > 0)
-                {
-                    Point mp = e.GetPosition(cBoard);
-                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
-                    tbAroundX.Text = ((int)p.X).ToString();
-                    tbAroundY.Text = ((int)p.Y).ToString();
-
-                    //DrawPointFigure(mp.X, mp.Y, Brushes.Yellow, 10);
-                    MovePivot();
-                }
-        }
-
-        /// <summary>
-        /// one of text boxes was confirmed with Enter
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void TextBoxConfirmed(object sender, TextChangedEventArgs e)
-        {
-            CheckTextBoxes();
-            MovePivot();
-        }
-
-        /// <summary>
-        /// checking text boxes for format of values
-        /// </summary>
-        private void CheckTextBoxes()
-        {
-            if (tbDegree != null && tbAroundX != null && tbAroundY != null)
-            {
-                if (!Helper.TryParseGBFloat(tbDegree.Text, out degree))
-                {
-                    MessageBox.Show("Bad format of degree");
-                    return;
-                }
-                if (!Helper.TryParseGBFloat(tbAroundX.Text, out centerX))
-                {
-                    MessageBox.Show("Bad format of pivot x");
-                    return;
-                }
-                if (!Helper.TryParseGBFloat(tbAroundY.Text, out centerY))
-                {
-                    MessageBox.Show("Bad format of pivot y");
-                    return;
-                }
-            }
-        }
-
-        private void lbComponents_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            string selectedComponentLine = lbComponents.SelectedItem.ToString();
-            //MessageBox.Show(selectedComponentLine);
-            string componentName = selectedComponentLine.Split(", pins")[0];
-            componentName = componentName.Replace("{ component = ", "");
-            //{ component = "BL13", pins = 1 }
-            MoveSelectedComponentVisuals(componentName);
-            cBoard.Focus();
-        }
-
-        /// <summary>
-        /// disable some controls when work is in progress
-        /// </summary>
-        /// <param name="wip">work IS in progress</param>
-        private void WorkInProgress(bool wip)
-        {
-            inProcess = wip;
-            Dispatcher.Invoke(() =>
-            {
-                ButtonsEnability(!wip);
-            });
-        }
-
-        /// <summary>
-        /// enable or disable all buttons
-        /// </summary>
-        /// <param name="be">enability status to set</param>
-        private void ButtonsEnability(bool be)
-        {
-            IEnumerable<Button> buttons = MainGrid.Children.OfType<Button>();
-            foreach (Button butn in buttons)
-                butn.IsEnabled = be;
-        }
-
-        /// <summary>
-        /// enable or disable buttons specifically
-        /// </summary>
-        /// <param name="beOpen">enability status of "Open File" to set</param>
-        /// <param name="beRotate">enability status of "Rotate" to set</param>
-        /// <param name="beWrite">enability status of "Write File" to set</param>
-        private void ButtonsEnability(bool beOpen, bool beRotate, bool beWrite)
-        {
-            bLoadFile.IsEnabled = beOpen;
-            bRotate.IsEnabled = beRotate;
-            bWriteFile.IsEnabled = beWrite;
-        }
         #endregion
     }
 }
+
+

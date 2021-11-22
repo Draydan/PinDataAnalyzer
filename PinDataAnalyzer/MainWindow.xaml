@@ -13,9 +13,9 @@
         <Button x:Name="bLoadFile" Content="Load File" HorizontalAlignment="Left" Margin="22,23,0,0" VerticalAlignment="Top" Height="20" Width="69" Click="buttonChooseInputFile_Click"/>
         <Button x:Name="bWriteFile" Content="Write File" HorizontalAlignment="Left" Height="20" Margin="22,178,0,0" VerticalAlignment="Top" Width="69" RenderTransformOrigin="0.417,1.307" Click="bChooseOutputFile_Click"/>
         <Button x:Name="bRotate" Content="Rotate" HorizontalAlignment="Left" Margin="22,143,0,0" VerticalAlignment="Top" Width="69" Height="20" Click="bRotate_Click"/>
-        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="20" Margin="56,64,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="30" TextChanged="TextBoxConfirmed"/>
-        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="20" Margin="56,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100" TextChanged="TextBoxConfirmed"/>
-        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="20" Margin="56,114,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100" TextChanged="TextBoxConfirmed"/>
+        <TextBox x:Name="tbDegree" HorizontalAlignment="Left" Height="20" Margin="56,64,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="30" TextChanged="TextBoxChanged"/>
+        <TextBox x:Name="tbAroundX" HorizontalAlignment="Left" Height="20" Margin="56,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100" TextChanged="TextBoxChanged"/>
+        <TextBox x:Name="tbAroundY" HorizontalAlignment="Left" Height="20" Margin="56,114,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="36" Text="100" TextChanged="TextBoxChanged"/>
         <Label x:Name="label" Content="Angle" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Height="25" Width="44"/>
         <Label x:Name="label_Copy" Content="Pivot X" HorizontalAlignment="Left" Margin="10,87,0,0" VerticalAlignment="Top" Height="25" Width="46"/>
         <Label x:Name="label_Copy1" Content="Pivot Y" HorizontalAlignment="Left" Margin="10,112,0,0" VerticalAlignment="Top" Height="25" Width="46"/>

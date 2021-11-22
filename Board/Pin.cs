@@ -14,5 +14,6 @@ namespace PinBoard
         public string Name;
         public string ComponentName;
         public float X, Y;
+        public int lineIndexInFile;
     }
 }
