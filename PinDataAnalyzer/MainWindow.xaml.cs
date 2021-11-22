@@ -39,7 +39,7 @@ namespace PinDataAnalyzer
         private string inputFilePath, outputFilePath;
 
         // each N-th pin will change progress bar
-        ushort refreshStep = 2000;
+        ushort refreshStep = 500;
 
         // rotation
         float degree, centerX, centerY;
@@ -91,12 +91,12 @@ namespace PinDataAnalyzer
             for (int ti = 0; ti < textLineCount; ti += refreshStep)
             {
                 problems += board.LoadPins(ti, ti + refreshStep);
-                ShowProgressThreaded("Loading\nfile data", (ushort)(progressOnPinningStart /10 +  (float)ti / textLineCount));
+                ShowProgressThreaded("Loading\nfile data", (ushort)(progressOnPinningStart /10 + progressOnPinningStart / 2 *(float)ti / textLineCount));
             }
 
             if (board.Pins.Count > 0)
             {
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart / 2);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart / 10 + progressOnPinningStart / 2);
 
                 // write components to listbox
                 var components = board.Pins.GroupBy(pin => pin.ComponentName)
@@ -107,7 +107,7 @@ namespace PinDataAnalyzer
                     }
                     ).OrderByDescending(grp => grp.pins).ToList();
 
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart / 2);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 2 * progressOnPinningStart / 10 + progressOnPinningStart / 2);
 
                 //Dispatcher.Invoke(() =>
                 //{
@@ -121,7 +121,10 @@ namespace PinDataAnalyzer
                         lbComponents.Items.Add(components[ci]);
                     });
                     if (ci % refreshStep == 0)
-                        ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", (ushort)(progressOnPinningStart / 2 * (1 + (float)ci / componentsCount)));
+                        ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 
+                            (ushort)(2 * progressOnPinningStart / 10 
+                            + progressOnPinningStart / 2 
+                            * (1 + (float)ci / componentsCount)));
                 }
 
                 ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
@@ -190,9 +193,6 @@ namespace PinDataAnalyzer
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
-            }
-            finally
-            {
             }
         }
 
@@ -369,7 +369,7 @@ namespace PinDataAnalyzer
         /// </summary>
         /// <returns></returns>
         private string GetSelectedComponentName()
-        {
+        {            
             string selectedComponentLine = lbComponents.SelectedItem.ToString();
             //MessageBox.Show(selectedComponentLine);
             string componentName = selectedComponentLine.Split(", pins")[0];
@@ -385,9 +385,12 @@ namespace PinDataAnalyzer
         /// <param name="e"></param>
         private void lbComponents_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            MoveSelectedComponentVisuals(GetSelectedComponentName());
-            tabControl.SelectedIndex = 1;
-            cBoard.Focus();
+            if (lbComponents.SelectedIndex != -1)
+            {
+                MoveSelectedComponentVisuals(GetSelectedComponentName());
+                tabControl.SelectedIndex = 1;
+                cBoard.Focus();
+            }
         }
 
         /// <summary>
@@ -492,6 +495,8 @@ namespace PinDataAnalyzer
             cBoard.Children.Add(pivotPoly);
 
             cBoard.Children.Add(selectedComponentFigure);
+            MoveSelectedComponentToDefault();
+            lbComponents.SelectedIndex = -1;
         }
 
         /// <summary>
