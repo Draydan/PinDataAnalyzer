@@ -21,6 +21,8 @@ namespace PinBoard
         }
 
         public List<Pin> Pins;
+        // zooming coeficient to improve view
+        public readonly ushort Zoom = 2;
 
         //public delegate void UpdateProgressDelegate();
 
@@ -303,19 +305,19 @@ namespace PinBoard
         public int BoardToCanvasX(double bx)
         {
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            return (int)(bx - this.MinX);
+            return (int)(bx - this.MinX) * Zoom;
         }
 
         public int BoardToCanvasY(double by)
         {
-            return (int)(this.MaxY - by);
+            return (int)(this.MaxY - by) * Zoom;
         }
 
         public PointF CanvasToBoardCoordinates(double cx, double cy)
         {
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            float x = (float)(this.MinX + cx);
-            float y = (float)(this.MaxY - cy);
+            float x = (float)(this.MinX + cx) / Zoom;
+            float y = (float)(this.MaxY - cy) / Zoom;
             return new PointF(x, y);
         }
 

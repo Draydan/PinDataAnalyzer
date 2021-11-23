@@ -91,7 +91,7 @@ namespace PinDataAnalyzer
             for (int ti = 0; ti < textLineCount; ti += refreshStep)
             {
                 problems += board.LoadPins(ti, ti + refreshStep);
-                ShowProgressThreaded("Loading\nfile data", (ushort)(progressOnPinningStart /10 + progressOnPinningStart / 2 *(float)ti / textLineCount));
+                ShowProgressThreaded("Loading\nfile data", (ushort)(progressOnPinningStart /10 + progressOnPinningStart / 2 * (float)ti / textLineCount));
             }
 
             if (board.Pins.Count > 0)
@@ -113,14 +113,17 @@ namespace PinDataAnalyzer
                 //{
                 //    lbComponents.ItemsSource = components;
                 //});
+                
                 int componentsCount = components.Count;
+                // set progress step
+                int refreshLBCStep = componentsCount / 5;
                 for (int ci = 0; ci < componentsCount; ci++)
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        lbComponents.Items.Add(components[ci]);
+                        lbComponents.Items.Add($"Component {components[ci].component} has {components[ci].pins} pins");
                     });
-                    if (ci % refreshStep == 0)
+                    if (ci % refreshLBCStep == 0)
                         ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 
                             (ushort)(2 * progressOnPinningStart / 10 
                             + progressOnPinningStart / 2 
@@ -128,8 +131,16 @@ namespace PinDataAnalyzer
                 }
 
                 ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
+
                 // draw pins to board canvas
                 DrawBoardThreaded();
+
+                // clearing selection
+                Dispatcher.Invoke(() =>
+                {
+                    MoveSelectedComponentToDefault();
+                    lbComponents.SelectedIndex = -1;
+                });
             }
             else
             {
@@ -371,10 +382,10 @@ namespace PinDataAnalyzer
         private string GetSelectedComponentName()
         {            
             string selectedComponentLine = lbComponents.SelectedItem.ToString();
-            //MessageBox.Show(selectedComponentLine);
-            string componentName = selectedComponentLine.Split(", pins")[0];
-            componentName = componentName.Replace("{ component = ", "");
-            //{ component = "BL13", pins = 1 }
+            
+            string componentName = selectedComponentLine.Split(" has ")[0];
+            componentName = componentName.Replace("Component ", "");
+            
             return componentName;
         }
 
@@ -443,6 +454,57 @@ namespace PinDataAnalyzer
             });
         }
 
+        WriteableBitmap DrawPixels()
+        {
+            ushort pixelSize = 1;
+            //foreach (Pin pin in board.Pins)
+            //    wb.SetPixel(pin.X, pin.Y, Color.Black);
+
+            // Create the bitmap, with the dimensions of the image placeholder.
+            WriteableBitmap wb = new WriteableBitmap((int)img.Width,
+                (int)img.Height, 96, 96, PixelFormats.Bgra32, null);
+
+            Random rand = new Random();
+
+            foreach (Pin pin in board.Pins)
+            {
+                int px = board.BoardToCanvasX(pin.X) / board.Zoom;
+                int py = board.BoardToCanvasY(pin.Y) / board.Zoom;
+                for (int x = px; x < px + pixelSize; x++)
+                {
+                    for (int y = py; y < py + pixelSize; y++)
+                    {
+                        // one pixel is not enough while rectangle is too much. Lets try cross.
+                        if (x >= 0 && y >= 0 && x < img.Width && y < img.Height && (x-px) * (y-py) != 1)
+                        {
+                            int alpha = 0;
+                            int red = 0;
+                            int green = 0;
+                            int blue = 0;
+
+                            // Determine the pixel's color.
+                            ushort intens = 255;
+                            //red = intens;
+                            //green = intens;
+                            blue = intens;
+                            alpha = 255;
+                            // Set the pixel value.                    
+                            byte[] colorData = { (byte)blue, (byte)green, (byte)red, (byte)alpha }; // B G R
+
+                            Int32Rect rect = new Int32Rect(x, y, 1, 1);
+                            int stride = (wb.PixelWidth * wb.Format.BitsPerPixel) / 8;
+                            wb.WritePixels(rect, colorData, stride, 0);
+
+                            //wb.WritePixels(.[y * wb.PixelWidth + x] = pixelColorValue;
+                        }
+                    }
+                }
+            }            
+
+            // Show the bitmap in an Image element.
+            return wb;
+        }
+
         /// <summary>
         /// draw pins on board canvas
         /// </summary>
@@ -457,14 +519,14 @@ namespace PinDataAnalyzer
 
             int pinCount = board.Pins.Count;
 
-            for (int pi = 0; pi < pinCount; pi++)
-            //foreach (Pin pin in board.Pins)
-            {
-                Pin pin = board.Pins[pi];
-                DrawPin(pin.X, pin.Y);
-                if (pi % refreshStep == 0)
-                    ShowProgress("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
-            }
+            //for (int pi = 0; pi < pinCount; pi++)
+            ////foreach (Pin pin in board.Pins)
+            //{
+            //    Pin pin = board.Pins[pi];
+            //    DrawPin(pin.X, pin.Y);
+            //    if (pi % refreshStep == 0)
+            //        ShowProgress("Loading.\nDrawing pins", (ushort)(progressOnPinningStart + (100 - progressOnPinningStart) * pi / pinCount));
+            //}
 
             // lets write all extremal coordinates on board
             int bMaxX, bMinX, bMaxY, bMinY;
@@ -486,17 +548,35 @@ namespace PinDataAnalyzer
             WriteOnBoard(bMaxX, bMinY, $"({bMaxX}; {bMinY})", color);
             DrawPointFigure(bMaxX, bMinY, color);
 
-            double posY = board.CenterOfGravity().Y;
-            double posX = board.MaxX * 1.05;
-            WriteOnBoard(posX, posY, $"Gravity center: ({board.CenterOfGravity().X}; {posY})", color);
+            // lets write down the gravity center
+            double gravCenterY = board.CenterOfGravity().Y;
+            double posX = bMaxX * 1.05;
+            double gravCenterX = board.CenterOfGravity().X;
+            double posY =  bMinY - bMaxY * 0.05;
+
+            WriteOnBoard(posX, gravCenterY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
+            WriteOnBoard(gravCenterX, posY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
+            DrawPointFigure(gravCenterX, gravCenterY, color);
             //DrawPointFigure(board.MaxX, posY, color);
 
+            // lets write some hints
+            posY = gravCenterY + bMaxY * 0.25;
+            WriteOnBoard(posX, posY, $"Hints:\n1) click board to set pivot\n2) click component in listbox to\nhighlight it on board", color);
+
+            // readding service figures
             MovePivot();
             cBoard.Children.Add(pivotPoly);
 
             cBoard.Children.Add(selectedComponentFigure);
-            MoveSelectedComponentToDefault();
-            lbComponents.SelectedIndex = -1;
+
+            MoveSelectedComponentVisuals();
+
+            // draw pins as pixels
+            img.Width = (bMaxX - bMinX);
+            img.Height = (bMaxY - bMinY);
+            img.Source = DrawPixels();
+            img.Width *= board.Zoom;
+            img.Height *= board.Zoom;
         }
 
         /// <summary>
@@ -543,13 +623,13 @@ namespace PinDataAnalyzer
             {
                 if (board != null && tbDegree != null && tbAroundX != null && tbAroundY != null)
                 {
-                    int px = board.BoardToCanvasX(int.Parse(tbAroundX.Text));
-                    int py = board.BoardToCanvasY(int.Parse(tbAroundY.Text));
+                    int px = board.BoardToCanvasX(Helper.ParseGBFloat(tbAroundX.Text));
+                    int py = board.BoardToCanvasY(Helper.ParseGBFloat(tbAroundY.Text));
 
                     pivotPoly.Points[0] = new Point(px + pivotRadius, py);
                     pivotPoly.Points[1] = new Point(px, py);
 
-                    double angle = Math.PI * int.Parse(tbDegree.Text) / 180;
+                    double angle = Math.PI * Helper.ParseGBFloat(tbDegree.Text) / 180;
                     pivotPoly.Points[2] = new Point(
                         px + pivotRadius * Math.Cos(angle),
                         py - pivotRadius * Math.Sin(angle));
@@ -613,6 +693,12 @@ namespace PinDataAnalyzer
             Canvas.SetLeft(textBlock, cx);
             Canvas.SetTop(textBlock, cy);
             cBoard.Children.Add(textBlock);
+        }
+
+        private void cBoard_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            //img.Width = cBoard.ActualWidth;
+            //img.Height = cBoard.ActualHeight;
         }
 
         /// <summary>

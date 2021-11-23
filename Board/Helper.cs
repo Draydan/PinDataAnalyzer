@@ -19,5 +19,15 @@ namespace PinBoard
         {
             return float.TryParse(txt, NumberStyles.Float, CultureInfo.GetCultureInfo("en-GB"), out number);
         }
+
+        /// <summary>
+        /// Parse float with GB culture
+        /// </summary>
+        /// <param name="txt">input string with float number</param>        
+        /// <returns>output number as float</returns>
+        public static float ParseGBFloat(string txt)
+        {
+            return float.Parse(txt, NumberStyles.Float, CultureInfo.GetCultureInfo("en-GB"));
+        }
     }
 }
