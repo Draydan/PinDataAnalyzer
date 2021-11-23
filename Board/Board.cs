@@ -26,6 +26,7 @@ namespace PinBoard
         private readonly float minZoom = 0.3f;
         private readonly float maxZoom = 5;
         private readonly float zoomCoef = 1.05f;
+        private float maxX, minX, maxY, minY;
 
         //public delegate void UpdateProgressDelegate();
 
@@ -91,8 +92,11 @@ namespace PinBoard
                 double yRel = y0 - yTurn;
 
                 //not own rotation
-                //pin.X = (float)(xTurn + xRel * Math.Cos(rad) + yRel * Math.Sin(rad));
-                //pin.Y = (float)(yTurn + yRel * Math.Cos(rad) - xRel * Math.Sin(rad));
+                //pin.X = (xTurn + xRel * cos + yRel * sin);
+                //pin.Y = (yTurn + yRel * cos - xRel * sin);
+
+                //pin.X = (float)Math.Round((xTurn + xRel * cos + yRel * sin), 6);
+                //pin.Y = (float)Math.Round((yTurn + yRel * cos - xRel * sin), 6);
 
                 // own rotation
                 pin.X = (float)(xTurn + xRel * cos - yRel * sin);
@@ -237,6 +241,18 @@ namespace PinBoard
                     }
                 }                
             }
+
+            maxX = (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.X));
+            maxY = (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.Y));
+            minX = (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.X));
+            minY = (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y));
+
+#warning ТЕСТ! заполнение нужно потом убрать!!!
+            float minx = MinX, maxx = MaxX, miny = MinY, maxy = MaxY;
+            for (int xi = (int)minx; xi < maxx; xi++)
+                for (int yi = (int)miny; yi < maxy; yi++)
+                    Pins.Add(new Pin{ X = xi, Y = yi });
+
             return returnText;
         }
 
@@ -291,7 +307,11 @@ namespace PinBoard
         /// </summary>
         public float MinX
         {
-            get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.X)); }
+            //get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.X)); }
+            get
+            {
+                return minX;
+            }
         }
 
         /// <summary>
@@ -299,7 +319,11 @@ namespace PinBoard
         /// </summary>
         public float MaxY
         {
-            get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.Y)); }
+            //get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.Y)); }
+            get
+            {
+                return maxY;
+            }
         }
 
         /// <summary>
@@ -307,14 +331,19 @@ namespace PinBoard
         /// </summary>
         public float MinY
         {
-            get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y)); }
+            //get { return (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y)); }
+            get { return minY; }
         }
         /// <summary>
         /// maximal x of all pins for board drawing
         /// </summary>
         public float MaxX
         {
-            get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.X)); }
+            //get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.X)); }
+            get
+            {
+                return maxX;
+            }
         }
 
         /// <summary>

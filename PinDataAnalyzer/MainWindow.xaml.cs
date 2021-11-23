@@ -221,8 +221,9 @@ namespace PinDataAnalyzer
             {
                 string info = "Rotating"; //$"Rotating\n{pi} of {pinCount}"
                 ShowProgressThreaded(info, progress: (ushort)((progressOnLongPhaseStart) * (float)pi / pinCount));
-                board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
+                //board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
             }
+            board.Turn(degree, centerX, centerY);
             ShowProgressThreaded("Drawing", progressOnLongPhaseStart);
             DrawBoardThreaded();
             ShowProgressThreaded("Rotation\nfinished", 100);
