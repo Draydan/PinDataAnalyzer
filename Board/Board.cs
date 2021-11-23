@@ -316,8 +316,8 @@ namespace PinBoard
         public PointF CanvasToBoardCoordinates(double cx, double cy)
         {
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            float x = (float)(this.MinX + cx) / Zoom;
-            float y = (float)(this.MaxY - cy) / Zoom;
+            float x = (float)(this.MinX + cx / Zoom);
+            float y = (float)(this.MaxY - cy / Zoom);
             return new PointF(x, y);
         }
 

@@ -32,8 +32,8 @@ namespace PinDataAnalyzer
         // radius of drawed segment
         private const ushort pivotRadius = 40;
 
-        // value from 0 to 100 to set it on progressbar when startint drawing pins
-        private const ushort progressOnPinningStart = 70;
+        // value from 0 to 100 to set it on progressbar when startint last long phase
+        private const ushort progressOnLongPhaseStart = 70;
 
         // filepaths to keep for a thread
         private string inputFilePath, outputFilePath;
@@ -80,23 +80,30 @@ namespace PinDataAnalyzer
         private void ThreadedOpeningAndReading()
         {
             WorkInProgress(true);
-            ShowProgressThreaded("Loading.\nReading file", progressOnPinningStart / 15);
+            ushort[] progresses = {10, 20, 50, 60, 70, 80, 90, 100};
+            ushort currentProgress = 0;
+            ShowProgressThreaded("Loading.\nReading file", progresses[currentProgress++]);
             // read pins to board object
             string path = inputFilePath;
             board.ReadFromFile(path);
-            ShowProgressThreaded("Loading.\nReading file", progressOnPinningStart / 10);
+            ShowProgressThreaded("Loading.\nReading file", progresses[currentProgress++]);
 
             string problems = "";
             int textLineCount = board.texts.Count;
             for (int ti = 0; ti < textLineCount; ti += refreshStep)
             {
                 problems += board.LoadPins(ti, ti + refreshStep);
-                ShowProgressThreaded("Loading\nfile data", (ushort)(progressOnPinningStart /10 + progressOnPinningStart / 2 * (float)ti / textLineCount));
+                ShowProgressThreaded("Loading\nfile data", (ushort)(progresses[currentProgress] + progresses[currentProgress+1] * (float)ti / textLineCount));
             }
+            currentProgress++;
 
             if (board.Pins.Count > 0)
             {
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progressOnPinningStart / 10 + progressOnPinningStart / 2);
+                ShowProgressThreaded("Loading.\nDrawing pins", progresses[currentProgress++]);
+                // draw pins to board canvas
+                DrawBoardThreaded();
+
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progresses[currentProgress++]);
 
                 // write components to listbox
                 var components = board.Pins.GroupBy(pin => pin.ComponentName)
@@ -107,7 +114,7 @@ namespace PinDataAnalyzer
                     }
                     ).OrderByDescending(grp => grp.pins).ToList();
 
-                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 2 * progressOnPinningStart / 10 + progressOnPinningStart / 2);
+                ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", progresses[currentProgress++]);
 
                 //Dispatcher.Invoke(() =>
                 //{
@@ -125,15 +132,9 @@ namespace PinDataAnalyzer
                     });
                     if (ci % refreshLBCStep == 0)
                         ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 
-                            (ushort)(2 * progressOnPinningStart / 10 
-                            + progressOnPinningStart / 2 
-                            * (1 + (float)ci / componentsCount)));
+                            (ushort)(progresses[currentProgress] + progresses[currentProgress + 1] * (float)ci / componentsCount));
                 }
-
-                ShowProgressThreaded("Loading.\nDrawing pins", progressOnPinningStart);
-
-                // draw pins to board canvas
-                DrawBoardThreaded();
+                //currentProgress++;
 
                 // clearing selection
                 Dispatcher.Invoke(() =>
@@ -219,10 +220,10 @@ namespace PinDataAnalyzer
             for (int pi = 0; pi < pinCount; pi += refreshStep)
             {
                 string info = "Rotating"; //$"Rotating\n{pi} of {pinCount}"
-                ShowProgressThreaded(info, progress: (ushort)((progressOnPinningStart) * (float)pi / pinCount));
+                ShowProgressThreaded(info, progress: (ushort)((progressOnLongPhaseStart) * (float)pi / pinCount));
                 board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
             }
-            ShowProgressThreaded("Drawing", progressOnPinningStart);
+            ShowProgressThreaded("Drawing", progressOnLongPhaseStart);
             DrawBoardThreaded();
             ShowProgressThreaded("Rotation\nfinished", 100);
             Dispatcher.Invoke(() =>
@@ -454,6 +455,10 @@ namespace PinDataAnalyzer
             });
         }
 
+        /// <summary>
+        /// drawing pixels for pins on bitmap for image
+        /// </summary>
+        /// <returns>bitmap with pixels</returns>
         WriteableBitmap DrawPixels()
         {
             ushort pixelSize = 1;
@@ -475,7 +480,8 @@ namespace PinDataAnalyzer
                     for (int y = py; y < py + pixelSize; y++)
                     {
                         // one pixel is not enough while rectangle is too much. Lets try cross.
-                        if (x >= 0 && y >= 0 && x < img.Width && y < img.Height && (x-px) * (y-py) != 1)
+                        // ok, lets not
+                        if (x >= 0 && y >= 0 && x < img.Width && y < img.Height )//&& (x-px) * (y-py) != 1)
                         {
                             int alpha = 0;
                             int red = 0;
@@ -554,14 +560,15 @@ namespace PinDataAnalyzer
             double gravCenterX = board.CenterOfGravity().X;
             double posY =  bMinY - bMaxY * 0.05;
 
-            WriteOnBoard(posX, gravCenterY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
+            // and lets write some hints
+            //posY = gravCenterY + bMaxY * 0.25;
+            //WriteOnBoard(posX, posY, $"Hints:\n1) click board to set pivot\n2) click component in listbox to\nhighlight it on board", color);
+            WriteOnBoard(posX, gravCenterY, 
+                $"Gravity center: ({gravCenterX}; {gravCenterY})\n\nHints:\n1) click board to set pivot\n2) click component in listbox to\nhighlight it on board"
+                , color);
             WriteOnBoard(gravCenterX, posY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
             DrawPointFigure(gravCenterX, gravCenterY, color);
             //DrawPointFigure(board.MaxX, posY, color);
-
-            // lets write some hints
-            posY = gravCenterY + bMaxY * 0.25;
-            WriteOnBoard(posX, posY, $"Hints:\n1) click board to set pivot\n2) click component in listbox to\nhighlight it on board", color);
 
             // readding service figures
             MovePivot();
