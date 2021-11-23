@@ -23,6 +23,9 @@ namespace PinBoard
         public List<Pin> Pins;
         // zooming coeficient to improve view
         public float Zoom = 1.5f;
+        private readonly float minZoom = 0.3f;
+        private readonly float maxZoom = 5;
+        private readonly float zoomCoef = 1.05f;
 
         //public delegate void UpdateProgressDelegate();
 
@@ -72,28 +75,28 @@ namespace PinBoard
         /// <param name="y"></param>
         public void Turn(float degreeTurn, float xTurn, float yTurn, int startPin, int endPin)
         {
+            // turn angle in radians
+            double rad = Math.PI * degreeTurn / 180f;
+            double sin = Math.Sin(rad);
+            double cos = Math.Cos(rad);
+
             for (int pi = startPin; pi < endPin && pi < Pins.Count; pi++)
             {
                 Pin pin = Pins[pi];
-
-                if (pin.ComponentName == "X2J2")
-                    Console.WriteLine("found you");
-                
-                float x0 = pin.X;
-                float y0 = pin.Y;
+                                
+                double x0 = pin.X;
+                double y0 = pin.Y;
                 // coordinates relative to turn point
-                float xRel = x0 - xTurn;
-                float yRel = y0 - yTurn;
-                // turn angle in radians
-                double rad = Math.PI * degreeTurn / 180;
+                double xRel = x0 - xTurn;
+                double yRel = y0 - yTurn;
 
                 //not own rotation
                 //pin.X = (float)(xTurn + xRel * Math.Cos(rad) + yRel * Math.Sin(rad));
                 //pin.Y = (float)(yTurn + yRel * Math.Cos(rad) - xRel * Math.Sin(rad));
 
                 // own rotation
-                pin.X = (float)(xTurn + xRel * Math.Cos(rad) - yRel * Math.Sin(rad));
-                pin.Y = (float)(yTurn + xRel * Math.Sin(rad) + yRel * Math.Cos(rad));
+                pin.X = (float)(xTurn + xRel * cos - yRel * sin);
+                pin.Y = (float)(yTurn + xRel * sin + yRel * cos);
             }
         }
 
@@ -271,6 +274,18 @@ namespace PinBoard
                 }
         }
 
+        public void ZoomOut()
+        {
+            if(Zoom > minZoom)
+                Zoom /= zoomCoef;
+        }
+
+        public void ZoomIn()
+        {
+            if (Zoom < maxZoom)
+                Zoom *= zoomCoef;
+        }
+
         /// <summary>
         /// minimal x of all pins for board drawing
         /// </summary>
@@ -302,22 +317,48 @@ namespace PinBoard
             get { return (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.X)); }
         }
 
-        public int BoardToCanvasX(double bx)
+        /// <summary>
+        /// Width multiplied by zoom
+        /// </summary>
+        public float Width { get { return (MaxX - MinX) * Zoom; }}
+
+        /// <summary>
+        /// Height multiplied by zoom
+        /// </summary>
+        public float Height { get { return (MaxY - MinY) * Zoom; } }
+
+        /// <summary>
+        /// transform board coordinates to canvas coordinates
+        /// </summary>
+        /// <param name="bx"></param>
+        /// <returns></returns>
+        public float BoardToCanvasX(float bx)
         {
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            return (int)((bx - this.MinX) * Zoom);
+            return (bx - MinX) * Zoom;
         }
 
-        public int BoardToCanvasY(double by)
+        /// <summary>
+        /// transform board coordinates to canvas coordinates
+        /// </summary>
+        /// <param name="by"></param>
+        /// <returns></returns>
+        public float BoardToCanvasY(float by)
         {
-            return (int)((this.MaxY - by) * Zoom);
+            return (MaxY - by) * Zoom;
         }
 
-        public PointF CanvasToBoardCoordinates(double cx, double cy)
+        /// <summary>
+        /// transform canvas coordinates to board coordinates
+        /// </summary>
+        /// <param name="cx"></param>
+        /// <param name="cy"></param>
+        /// <returns></returns>
+        public PointF CanvasToBoardCoordinates(float cx, float cy)
         {
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            float x = (float)(this.MinX + cx / Zoom);
-            float y = (float)(this.MaxY - cy / Zoom);
+            float x = (float)(MinX + cx / Zoom);
+            float y = (float)(MaxY - cy / Zoom);
             return new PointF(x, y);
         }
 
@@ -340,6 +381,17 @@ namespace PinBoard
         public PointF CanvasToBoardCoordinates(int cx, int cy)
         {
             return CanvasToBoardCoordinates(cx, cy);
+        }
+
+        /// <summary>
+        /// transform coordinates on canvas into board plane
+        /// </summary>
+        /// <param name="cx">x on canvas</param>
+        /// <param name="cy">y on canvas</param>
+        /// <returns></returns>
+        public PointF CanvasToBoardCoordinates(double cx, double cy)
+        {
+            return CanvasToBoardCoordinates((float)cx, (float)cy);
         }
 
     }

@@ -279,17 +279,23 @@ namespace PinDataAnalyzer
 
         private void Grid_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            WorkInProgress(true);
-            if (e.Delta > 0)
+            if (board.Pins.Count > 0)
             {
-                board.Zoom *= 1.1f;
+                WorkInProgress(true);
+                if (e.Delta > 0)
+                {
+                    board.ZoomIn();
+                }
+                else
+                {
+                    board.ZoomOut();
+                }
+                //DrawBoardThreaded();
+                img.Width = board.Width;
+                img.Height = board.Height;
+                ReDrawCanvas();
+                WorkInProgress(false);
             }
-            else
-            {
-                board.Zoom /= 1.1f;
-            }
-            DrawBoardThreaded();
-            WorkInProgress(false);
         }
         #endregion
 
@@ -488,15 +494,19 @@ namespace PinDataAnalyzer
 
             foreach (Pin pin in board.Pins)
             {
-                int px = (int)(board.BoardToCanvasX(pin.X) / board.Zoom);
-                int py = (int)(board.BoardToCanvasY(pin.Y) / board.Zoom);
-                for (int x = px; x < px + pixelSize; x++)
+                int px = (int)pin.X;
+                int py = (int)pin.Y;
+                px = (int)Math.Round(board.BoardToCanvasX(pin.X) / board.Zoom, 0);
+                py = (int)Math.Round(board.BoardToCanvasY(pin.Y) / board.Zoom, 0);
+                //for (int x = px; x < px + pixelSize; x++)
+                int x = px;
                 {
-                    for (int y = py; y < py + pixelSize; y++)
+                    //for (int y = py; y < py + pixelSize; y++)
+                    int y = py;
                     {
                         // one pixel is not enough while rectangle is too much. Lets try cross.
                         // ok, lets not
-                        if (x >= 0 && y >= 0 && x < img.Width && y < img.Height )//&& (x-px) * (y-py) != 1)
+                        if (x >= 0 && y >= 0 && x < img.Width && y < img.Height)//&& (x-px) * (y-py) != 1)
                         {
                             int alpha = 0;
                             int red = 0;
@@ -531,14 +541,32 @@ namespace PinDataAnalyzer
         /// </summary>
         void DrawBoard()
         {
+            ReDrawCanvas();
+
+            int bMaxX, bMinX, bMaxY, bMinY;
+            bMaxX = (int)Math.Round(board.MaxX);
+            bMaxY = (int)Math.Round(board.MaxY);
+            bMinX = (int)Math.Round(board.MinX);
+            bMinY = (int)Math.Round(board.MinY);
+
+            // draw pins as pixels
+            img.Width = (bMaxX - bMinX);
+            img.Height = (bMaxY - bMinY);
+            img.Source = DrawPixels();
+            img.Width = board.Width;
+            img.Height = board.Height;
+        }
+
+        private void ReDrawCanvas()
+        {
             cBoard.Children.Clear();
 
             // draw pins to board canvas
             // as screen coordinates are mirrored along Y axis, some transformations are necessary
-            float minX = board.Pins.Min(pin => pin.X);
-            float maxY = board.Pins.Max(pin => pin.Y);
+            //float minX = board.Pins.Min(pin => pin.X);
+            //float maxY = board.Pins.Max(pin => pin.Y);
 
-            int pinCount = board.Pins.Count;
+            //int pinCount = board.Pins.Count;
 
             //for (int pi = 0; pi < pinCount; pi++)
             ////foreach (Pin pin in board.Pins)
@@ -570,16 +598,20 @@ namespace PinDataAnalyzer
             DrawPointFigure(bMaxX, bMinY, color);
 
             // lets write down the gravity center
-            double gravCenterY = board.CenterOfGravity().Y;
-            double posX = bMaxX * 1.05;
-            double gravCenterX = board.CenterOfGravity().X;
-            double posY =  bMinY - bMaxY * 0.05;
+            float gravCenterY = board.CenterOfGravity().Y;
+            float posX = bMaxX * 1.05f;
+            float gravCenterX = board.CenterOfGravity().X;
+            float posY = bMinY - bMaxY * 0.05f;
 
             // and lets write some hints
             //posY = gravCenterY + bMaxY * 0.25;
             //WriteOnBoard(posX, posY, $"Hints:\n1) click board to set pivot\n2) click component in listbox to\nhighlight it on board", color);
-            WriteOnBoard(posX, gravCenterY, 
-                $"Gravity center: ({gravCenterX}; {gravCenterY})\n\nHints:\n1) click board to set pivot\n2) click component in listbox to\nhighlight it on board"
+            WriteOnBoard(posX, gravCenterY,
+                $"Gravity center: ({gravCenterX}; {gravCenterY})\n\n"
+                + "Hints:\n"
+                + "1) click board to set pivot\n"
+                + "2) click component in listbox to\nhighlight it on board\n"
+                + "3) use mouse wheel to zoom in and out"
                 , color);
             WriteOnBoard(gravCenterX, posY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
             DrawPointFigure(gravCenterX, gravCenterY, color);
@@ -592,13 +624,6 @@ namespace PinDataAnalyzer
             cBoard.Children.Add(selectedComponentFigure);
 
             MoveSelectedComponentVisuals();
-
-            // draw pins as pixels
-            img.Width = (bMaxX - bMinX);
-            img.Height = (bMaxY - bMinY);
-            img.Source = DrawPixels();
-            img.Width *= board.Zoom;
-            img.Height *= board.Zoom;
         }
 
         /// <summary>
@@ -645,8 +670,8 @@ namespace PinDataAnalyzer
             {
                 if (board != null && tbDegree != null && tbAroundX != null && tbAroundY != null)
                 {
-                    int px = board.BoardToCanvasX(Helper.ParseGBFloat(tbAroundX.Text));
-                    int py = board.BoardToCanvasY(Helper.ParseGBFloat(tbAroundY.Text));
+                    int px = (int)Math.Round(board.BoardToCanvasX(Helper.ParseGBFloat(tbAroundX.Text)), 0);
+                    int py = (int)Math.Round(board.BoardToCanvasY(Helper.ParseGBFloat(tbAroundY.Text)), 0);
 
                     pivotPoly.Points[0] = new Point(px + pivotRadius, py);
                     pivotPoly.Points[1] = new Point(px, py);
@@ -700,12 +725,12 @@ namespace PinDataAnalyzer
         /// <param name="by">board y</param>
         /// <param name="text"></param>
         /// <param name="color"></param>
-        void WriteOnBoard(double bx, double by, string text, SolidColorBrush color)
+        void WriteOnBoard(float bx, float by, string text, SolidColorBrush color)
         {
             //ushort shift = 5;
 
-            int cx = board.BoardToCanvasX(bx);
-            int cy = board.BoardToCanvasY(by);
+            int cx = (int)board.BoardToCanvasX(bx);
+            int cy = (int)board.BoardToCanvasY(by);
 
             //(int)(pin.X - minX), (int)(maxY - pin.Y)
 
@@ -739,7 +764,7 @@ namespace PinDataAnalyzer
         /// <param name="x">board x</param>
         /// <param name="y">board y</param>
         /// <param name="color">color</param>
-        void DrawPointFigure(double x, double y, SolidColorBrush color, int width = 1)
+        void DrawPointFigure(float x, float y, SolidColorBrush color, int width = 1)
         {
             DrawPointFigure((int)x, (int)y, color, width);
         }
@@ -754,8 +779,8 @@ namespace PinDataAnalyzer
         {
             int radius = width;
 
-            int x = board.BoardToCanvasX(bx);
-            int y = board.BoardToCanvasY(by);
+            int x = (int)Math.Round(board.BoardToCanvasX(bx), 0);
+            int y = (int)Math.Round(board.BoardToCanvasY(by), 0);
 
             Point point = new(x, y);
             Ellipse figure = new();
