@@ -276,6 +276,21 @@ namespace PinDataAnalyzer
             }
         }
 
+
+        private void Grid_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            WorkInProgress(true);
+            if (e.Delta > 0)
+            {
+                board.Zoom *= 1.1f;
+            }
+            else
+            {
+                board.Zoom /= 1.1f;
+            }
+            DrawBoardThreaded();
+            WorkInProgress(false);
+        }
         #endregion
 
         #region visual controls
@@ -473,8 +488,8 @@ namespace PinDataAnalyzer
 
             foreach (Pin pin in board.Pins)
             {
-                int px = board.BoardToCanvasX(pin.X) / board.Zoom;
-                int py = board.BoardToCanvasY(pin.Y) / board.Zoom;
+                int px = (int)(board.BoardToCanvasX(pin.X) / board.Zoom);
+                int py = (int)(board.BoardToCanvasY(pin.Y) / board.Zoom);
                 for (int x = px; x < px + pixelSize; x++)
                 {
                     for (int y = py; y < py + pixelSize; y++)

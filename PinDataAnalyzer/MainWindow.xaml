@@ -26,7 +26,7 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Board" IsSelected="True">
-                <Grid Background="#FFE5E5E5"  MouseMove="cBoard_MouseMove"  MouseDown="cBoard_MouseDown">
+                <Grid Background="#FFE5E5E5"  MouseMove="cBoard_MouseMove"  MouseDown="cBoard_MouseDown" MouseWheel="Grid_MouseWheel" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                     <Canvas x:Name="cBoard" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch" SizeChanged="cBoard_SizeChanged"/>
                     <Image x:Name="img" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,0" Width="0" Height="0"/>
                 </Grid>
