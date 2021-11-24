@@ -102,6 +102,7 @@ namespace PinBoard
                 pin.X = (float)(xTurn + xRel * cos - yRel * sin);
                 pin.Y = (float)(yTurn + xRel * sin + yRel * cos);
             }
+            ReCalculateExtremes();
         }
 
         /// <summary>
@@ -242,18 +243,26 @@ namespace PinBoard
                 }                
             }
 
+            ReCalculateExtremes();
+
+//#warning ТЕСТ! заполнение нужно потом убрать!!!
+//            float minx = MinX, maxx = MaxX, miny = MinY, maxy = MaxY;
+//            for (int xi = (int)minx; xi < maxx; xi+=5)
+//                for (int yi = (int)miny; yi < maxy; yi+=2)
+//                    Pins.Add(new Pin{ X = xi, Y = yi });
+
+            return returnText;
+        }
+
+        /// <summary>
+        /// recalculate mins and maxs of pins' coordinates
+        /// </summary>
+        private void ReCalculateExtremes()
+        {
             maxX = (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.X));
             maxY = (Pins.Count == 0) ? (0) : (Pins.Max(pin => pin.Y));
             minX = (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.X));
             minY = (Pins.Count == 0) ? (0) : (Pins.Min(pin => pin.Y));
-
-#warning ТЕСТ! заполнение нужно потом убрать!!!
-            float minx = MinX, maxx = MaxX, miny = MinY, maxy = MaxY;
-            for (int xi = (int)minx; xi < maxx; xi++)
-                for (int yi = (int)miny; yi < maxy; yi++)
-                    Pins.Add(new Pin{ X = xi, Y = yi });
-
-            return returnText;
         }
 
         /// <summary>

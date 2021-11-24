@@ -483,7 +483,9 @@ namespace PinDataAnalyzer
         /// <returns>bitmap with pixels</returns>
         WriteableBitmap DrawPixels()
         {
-            ushort pixelSize = 1;
+            // maybe draw pixels around pixel for more uniform visual distribution
+            ushort pixelRadius = 2;
+
             //foreach (Pin pin in board.Pins)
             //    wb.SetPixel(pin.X, pin.Y, Color.Black);
 
@@ -497,13 +499,20 @@ namespace PinDataAnalyzer
             {
                 int px = (int)pin.X;
                 int py = (int)pin.Y;
-                px = (int)Math.Round(board.BoardToCanvasX(pin.X) / board.Zoom, 0);
-                py = (int)Math.Round(board.BoardToCanvasY(pin.Y) / board.Zoom, 0);
-                //for (int x = px; x < px + pixelSize; x++)
-                int x = px;
+
+                //px = (int)Math.Round(board.BoardToCanvasX(pin.X) / board.Zoom, 0);
+                //py = (int)Math.Round(board.BoardToCanvasY(pin.Y) / board.Zoom, 0);
+                float fpx, fpy;
+                fpx = pin.X - board.MinX;
+                fpy = board.MaxY - pin.Y;
+                px = (int)(fpx);
+                py = (int)(fpy);
+
+                for (int x = px - pixelRadius + 1; x < px + pixelRadius; x++)
+                //int x = px;
                 {
-                    //for (int y = py; y < py + pixelSize; y++)
-                    int y = py;
+                    for (int y = py - pixelRadius + 1; y < py + pixelRadius; y++)
+                    //int y = py;
                     {
                         // one pixel is not enough while rectangle is too much. Lets try cross.
                         // ok, lets not
@@ -519,7 +528,14 @@ namespace PinDataAnalyzer
                             //red = intens;
                             //green = intens;
                             blue = intens;
-                            alpha = 255;
+                            alpha = intens;
+                            if (pixelRadius > 1)
+                            {
+                                // changing intensity of alpha of color according to distance of current point to pin coordinat (float)
+                                alpha = (int)(((1 - Math.Abs(x - fpx)) * intens + (1 - Math.Abs(y - fpy)) * intens) / 2);
+                                if (Math.Abs(x - fpx) > 1 || Math.Abs(y - fpy) > 1)
+                                    alpha = 0;
+                            }
                             // Set the pixel value.                    
                             byte[] colorData = { (byte)blue, (byte)green, (byte)red, (byte)alpha }; // B G R
 
