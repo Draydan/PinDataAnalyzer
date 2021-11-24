@@ -44,6 +44,7 @@ namespace PinBoard
             // But I dont know what you want to do if its like this.
             // So I'm not adding any specific processing of that error here.
             Pins.Add(new Pin { X = px, Y = py, ComponentName = namesplit[0], Name = namesplit[1], lineIndexInFile = lineIndex });
+            ReCalculateExtremes();
         }
 
         /// <summary>
@@ -197,11 +198,11 @@ namespace PinBoard
         /// <returns>joined text of wrongful data lines</returns> 
         public string LoadPins(int startLine, int endLine)
         {
-            if(startLine == 0)
+            if (startLine == 0)
                 Pins = new List<Pin>();
 
             string returnText = "";
-                        
+
             //texts = new List<string>();
 
             for (int li = startLine; li < texts.Count && li < endLine; li++)
@@ -240,16 +241,10 @@ namespace PinBoard
                     {
                         returnText += pinDesc + "\n";
                     }
-                }                
+                }
             }
 
             ReCalculateExtremes();
-
-//#warning ТЕСТ! заполнение нужно потом убрать!!!
-//            float minx = MinX, maxx = MaxX, miny = MinY, maxy = MaxY;
-//            for (int xi = (int)minx; xi < maxx; xi+=5)
-//                for (int yi = (int)miny; yi < maxy; yi+=2)
-//                    Pins.Add(new Pin{ X = xi, Y = yi });
 
             return returnText;
         }
@@ -358,12 +353,12 @@ namespace PinBoard
         /// <summary>
         /// Width multiplied by zoom
         /// </summary>
-        public float Width { get { return (MaxX - MinX) * Zoom; }}
+        public float Width { get { return (MaxX - MinX + 1) * Zoom; }}
 
         /// <summary>
         /// Height multiplied by zoom
         /// </summary>
-        public float Height { get { return (MaxY - MinY) * Zoom; } }
+        public float Height { get { return (MaxY - MinY + 1) * Zoom; } }
 
         /// <summary>
         /// transform board coordinates to canvas coordinates

@@ -80,7 +80,7 @@ namespace PinDataAnalyzer
         private void ThreadedOpeningAndReading()
         {
             WorkInProgress(true);
-            ushort[] progresses = {10, 20, 50, 60, 70, 80, 90, 100};
+            ushort[] progresses = { 10, 20, 50, 60, 70, 80, 90, 100 };
             ushort currentProgress = 0;
             ShowProgressThreaded("Loading.\nReading file", progresses[currentProgress++]);
             // read pins to board object
@@ -93,9 +93,30 @@ namespace PinDataAnalyzer
             for (int ti = 0; ti < textLineCount; ti += refreshStep)
             {
                 problems += board.LoadPins(ti, ti + refreshStep);
-                ShowProgressThreaded("Loading\nfile data", (ushort)(progresses[currentProgress] + progresses[currentProgress+1] * (float)ti / textLineCount));
+                ShowProgressThreaded("Loading\nfile data", (ushort)(progresses[currentProgress] + progresses[currentProgress + 1] * (float)ti / textLineCount));
             }
             currentProgress++;
+
+            //            #region убрать 
+
+            //#warning ТЕСТ! заполнение нужно потом убрать!!!
+
+            //            {
+            //                float minx = board.MinX, maxx = board.MaxX, miny = board.MinY, maxy = board.MaxY;
+            //                if (maxx == 0 && maxy == 0)
+            //                {
+            //                    maxx = 100;
+            //                    maxy = 100;
+            //                }
+
+            //                for (int xi = (int)minx; xi < maxx; xi += 1)
+            //                    for (int yi = (int)miny; yi < maxy; yi += 2)
+            //                    {
+            //                        board.texts.Add($"N_PIN {1}_{1} {xi} {yi}");
+            //                        board.AddPin(xi, yi, "1_1", board.texts.Count-1);
+            //                    }
+            //            }
+            //            #endregion
 
             if (board.Pins.Count > 0)
             {
@@ -120,10 +141,10 @@ namespace PinDataAnalyzer
                 //{
                 //    lbComponents.ItemsSource = components;
                 //});
-                
+
                 int componentsCount = components.Count;
                 // set progress step
-                int refreshLBCStep = componentsCount / 5;
+                int refreshLBCStep = componentsCount / 5 + 1;
                 for (int ci = 0; ci < componentsCount; ci++)
                 {
                     Dispatcher.Invoke(() =>
@@ -131,7 +152,7 @@ namespace PinDataAnalyzer
                         lbComponents.Items.Add($"Component {components[ci].component} has {components[ci].pins} pins");
                     });
                     if (ci % refreshLBCStep == 0)
-                        ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist", 
+                        ShowProgressThreaded("Loading.\nFilling\ncomponents\nlist",
                             (ushort)(progresses[currentProgress] + progresses[currentProgress + 1] * (float)ci / componentsCount));
                 }
                 //currentProgress++;
@@ -164,7 +185,7 @@ namespace PinDataAnalyzer
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void buttonChooseInputFile_Click(object sender, RoutedEventArgs e)
+        private void bLoadFile_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -220,7 +241,7 @@ namespace PinDataAnalyzer
             for (int pi = 0; pi < pinCount; pi += refreshStep)
             {
                 string info = "Rotating"; //$"Rotating\n{pi} of {pinCount}"
-                ShowProgressThreaded(info, progress: (ushort)((progressOnLongPhaseStart) * (float)pi / pinCount));
+                ShowProgressThreaded(info, progress: (ushort)(progressOnLongPhaseStart * (float)pi / pinCount));
                 //board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
             }
             board.Turn(degree, centerX, centerY);
@@ -250,6 +271,7 @@ namespace PinDataAnalyzer
                 ShowProgressThreaded("Writing file", progress: (ushort)(100 * pi / pinCount));
             }
             ShowProgressThreaded("File written", 100);
+            MessageBox.Show("File written successfully");
             WorkInProgress(false);
         }
 
@@ -258,7 +280,7 @@ namespace PinDataAnalyzer
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void bChooseOutputFile_Click(object sender, RoutedEventArgs e)
+        private void bWriteFile_Click(object sender, RoutedEventArgs e)
         {
 
             try
@@ -276,8 +298,15 @@ namespace PinDataAnalyzer
                 MessageBox.Show(ex.ToString());
             }
         }
+        #endregion
 
+        #region visual controls, their events and actions
 
+        /// <summary>
+        /// mouse wheeling zooms in and out
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Grid_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             if (board.Pins.Count > 0)
@@ -294,14 +323,13 @@ namespace PinDataAnalyzer
                 //DrawBoardThreaded();
                 img.Width = board.Width;
                 img.Height = board.Height;
-                
+                //cBoard.Width = img.Width + 300;
+                //cBoard.Height = img.Height + 100;
                 ReDrawCanvas();
                 WorkInProgress(false);
             }
         }
-        #endregion
 
-        #region visual controls
         /// <summary>
         /// Set progress bar and write some info on label from another thread
         /// </summary>
@@ -404,12 +432,12 @@ namespace PinDataAnalyzer
         /// </summary>
         /// <returns></returns>
         private string GetSelectedComponentName()
-        {            
+        {
             string selectedComponentLine = lbComponents.SelectedItem.ToString();
-            
+
             string componentName = selectedComponentLine.Split(" has ")[0];
             componentName = componentName.Replace("Component ", "");
-            
+
             return componentName;
         }
 
@@ -464,7 +492,21 @@ namespace PinDataAnalyzer
             bRotate.IsEnabled = beRotate;
             bWriteFile.IsEnabled = beWrite;
         }
+
+        /// <summary>
+        /// click cb-AA, change AA mode
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void cbAA_Click(object sender, RoutedEventArgs e)
+        {
+            if (board.Pins.Count > 0)
+            {
+                ReDrawImage();
+            }
+        }
         #endregion
+
 
         #region drawing stuff
         /// <summary>
@@ -485,16 +527,31 @@ namespace PinDataAnalyzer
         WriteableBitmap DrawPixels()
         {
             // maybe draw pixels around pixel for more uniform visual distribution
-            ushort pixelRadius = 2;
+            ushort pixelRadius = (ushort)(((bool)cbAA.IsChecked) ? 2 : 1);
+
+            // internal parameter to try show big blurry pixels a bit "smaller"
+            bool smallerPixels = false;
+
+            // make this pseudocircle less sizeable visually, by cutting blur at some radius.
+            // margin to cut
+            float cut = 0.5f;
 
             //foreach (Pin pin in board.Pins)
             //    wb.SetPixel(pin.X, pin.Y, Color.Black);
 
+            int dpi = 300;
             // Create the bitmap, with the dimensions of the image placeholder.
             WriteableBitmap wb = new WriteableBitmap((int)img.Width,
-                (int)img.Height, 96, 96, PixelFormats.Bgra32, null);
+                (int)img.Height, dpi, dpi, PixelFormats.Bgra32, null);
 
-            Random rand = new Random();
+            // color map to fill and draw
+            ushort[,] map = new ushort[(int)img.Width, (int)img.Height];
+
+            // color of pins
+            ushort alpha = 0;
+            ushort red = 0;
+            ushort green = 0;
+            ushort blue = 255;
 
             foreach (Pin pin in board.Pins)
             {
@@ -507,7 +564,7 @@ namespace PinDataAnalyzer
                 fpx = pin.X - board.MinX;
                 fpy = board.MaxY - pin.Y;
                 px = (int)Math.Round(fpx, 0);
-                py = (int)Math.Round(fpy, 0);
+                py = (int)Math.Round(fpy, 0);                
 
                 for (int xi = px - pixelRadius + 1; xi < px + pixelRadius; xi++)
                 //int x = px;
@@ -519,43 +576,64 @@ namespace PinDataAnalyzer
                         // ok, lets not
                         if (xi >= 0 && yi >= 0 && xi < img.Width && yi < img.Height)//&& (x-px) * (y-py) != 1)
                         {
-                            ushort alpha = 0;
-                            ushort red = 0;
-                            ushort green = 0;
-                            ushort blue = 0;
+
 
                             // Determine the pixel's color.
                             ushort intens = 255;
-                            //red = intens;
-                            //green = intens;
-                            blue = intens;
-                            alpha = intens;
+
                             if (pixelRadius > 1)
                             {
-                                double distance = Math.Sqrt(Math.Pow(xi - fpx, 2) + Math.Pow(yi - fpy, 2));
+                                //double distance = Math.Sqrt(Math.Pow(xi - fpx, 2) + Math.Pow(yi - fpy, 2));
+
                                 // simplified distance metric for faster calculations
                                 // this metric is legit math metric
-                                //float distance = Math.Max(Math.Abs(xi - fpx), Math.Abs(yi - fpy));
+                                double distance = Math.Max(Math.Abs(xi - fpx), Math.Abs(yi - fpy));
                                 // changing intensity of alpha of color according to distance of current point to pin coordinat (float)
                                 //alpha = (int)(((pixelRadius + 1 - Math.Abs(xi - fpx)) * intens + (pixelRadius + 0.5 - Math.Abs(yi - fpy)) * intens) / 2);
                                 //alpha = ((intens * (pixelRadius - Math.Abs()
                                 //if (Math.Abs(xi - fpx) > 1 || Math.Abs(yi - fpy) > 1) alpha = 0;
                                 //distance = 
-                                //if(distance > 0)
-                                alpha = (ushort)(intens * (pixelRadius - distance)/pixelRadius);
+                                if (smallerPixels)
+                                {
+                                    if (distance < 1)
+                                        alpha = (ushort)(intens * ((pixelRadius - 1) - (distance)) / (pixelRadius - 1));
+                                    else
+                                        alpha = 0;
+                                }
+                                else
+                                {
+                                    alpha = (ushort)(intens * (pixelRadius - distance) / pixelRadius);
+                                    //if (distance > pixelRadius) Console.WriteLine("dist > radius");
+                                }
+                                if(alpha > map[xi, yi])
+                                    map[xi, yi] = alpha;
                             }
-                            // Set the pixel value.                    
-                            byte[] colorData = { (byte)blue, (byte)green, (byte)red, (byte)alpha }; // B G R
-
-                            Int32Rect rect = new Int32Rect(xi, yi, 1, 1);
-                            int stride = (wb.PixelWidth * wb.Format.BitsPerPixel) / 8;
-                            wb.WritePixels(rect, colorData, stride, 0);
-
-                            //wb.WritePixels(.[y * wb.PixelWidth + x] = pixelColorValue;
+                            else
+                                map[px, py] = 255;
                         }
                     }
                 }
-            }            
+            }
+            //ushort[,] map = new ushort[(int)img.Width, (int)img.Height];
+            for (int xi = 0; xi < (int)img.Width; xi++)
+            //int x = px;
+            {
+                for (int yi = 0; yi < (int)img.Height; yi++)
+                {
+                    alpha = map[xi, yi];
+                    if (alpha > 0)
+                    {
+                        // Set the pixel value.                    
+                        byte[] colorData = { (byte)blue, (byte)green, (byte)red, (byte)alpha}; // B G R
+
+                        Int32Rect rect = new Int32Rect(xi, yi, 1, 1);
+                        int stride = wb.PixelWidth * wb.Format.BitsPerPixel / 8;
+                        wb.WritePixels(rect, colorData, stride, 0);
+
+                        //wb.WritePixels(.[y * wb.PixelWidth + x] = pixelColorValue;
+                    }
+                }
+            }
 
             // Show the bitmap in an Image element.
             return wb;
@@ -567,7 +645,14 @@ namespace PinDataAnalyzer
         void DrawBoard()
         {
             ReDrawCanvas();
+            ReDrawImage();
+        }
 
+        /// <summary>
+        /// redraw image with pins
+        /// </summary>
+        private void ReDrawImage()
+        {
             int bMaxX, bMinX, bMaxY, bMinY;
             bMaxX = (int)Math.Round(board.MaxX);
             bMaxY = (int)Math.Round(board.MaxY);
@@ -575,13 +660,18 @@ namespace PinDataAnalyzer
             bMinY = (int)Math.Round(board.MinY);
 
             // draw pins as pixels
-            img.Width = (bMaxX - bMinX);
-            img.Height = (bMaxY - bMinY);
+            img.Width = bMaxX - bMinX + 1;
+            img.Height = bMaxY - bMinY + 1;
+
             img.Source = DrawPixels();
+
             img.Width = board.Width;
             img.Height = board.Height;
         }
 
+        /// <summary>
+        /// redraw canvas with auxillary info
+        /// </summary>
         private void ReDrawCanvas()
         {
             cBoard.Children.Clear();
@@ -767,11 +857,6 @@ namespace PinDataAnalyzer
             cBoard.Children.Add(textBlock);
         }
 
-        private void cBoard_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            //img.Width = cBoard.ActualWidth;
-            //img.Height = cBoard.ActualHeight;
-        }
 
         /// <summary>
         /// drawing pin
