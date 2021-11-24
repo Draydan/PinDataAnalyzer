@@ -294,6 +294,7 @@ namespace PinDataAnalyzer
                 //DrawBoardThreaded();
                 img.Width = board.Width;
                 img.Height = board.Height;
+                
                 ReDrawCanvas();
                 WorkInProgress(false);
             }
@@ -505,23 +506,23 @@ namespace PinDataAnalyzer
                 float fpx, fpy;
                 fpx = pin.X - board.MinX;
                 fpy = board.MaxY - pin.Y;
-                px = (int)(fpx);
-                py = (int)(fpy);
+                px = (int)Math.Round(fpx, 0);
+                py = (int)Math.Round(fpy, 0);
 
-                for (int x = px - pixelRadius + 1; x < px + pixelRadius; x++)
+                for (int xi = px - pixelRadius + 1; xi < px + pixelRadius; xi++)
                 //int x = px;
                 {
-                    for (int y = py - pixelRadius + 1; y < py + pixelRadius; y++)
+                    for (int yi = py - pixelRadius + 1; yi < py + pixelRadius; yi++)
                     //int y = py;
                     {
                         // one pixel is not enough while rectangle is too much. Lets try cross.
                         // ok, lets not
-                        if (x >= 0 && y >= 0 && x < img.Width && y < img.Height)//&& (x-px) * (y-py) != 1)
+                        if (xi >= 0 && yi >= 0 && xi < img.Width && yi < img.Height)//&& (x-px) * (y-py) != 1)
                         {
-                            int alpha = 0;
-                            int red = 0;
-                            int green = 0;
-                            int blue = 0;
+                            ushort alpha = 0;
+                            ushort red = 0;
+                            ushort green = 0;
+                            ushort blue = 0;
 
                             // Determine the pixel's color.
                             ushort intens = 255;
@@ -531,15 +532,22 @@ namespace PinDataAnalyzer
                             alpha = intens;
                             if (pixelRadius > 1)
                             {
+                                double distance = Math.Sqrt(Math.Pow(xi - fpx, 2) + Math.Pow(yi - fpy, 2));
+                                // simplified distance metric for faster calculations
+                                // this metric is legit math metric
+                                //float distance = Math.Max(Math.Abs(xi - fpx), Math.Abs(yi - fpy));
                                 // changing intensity of alpha of color according to distance of current point to pin coordinat (float)
-                                alpha = (int)(((1 - Math.Abs(x - fpx)) * intens + (1 - Math.Abs(y - fpy)) * intens) / 2);
-                                if (Math.Abs(x - fpx) > 1 || Math.Abs(y - fpy) > 1)
-                                    alpha = 0;
+                                //alpha = (int)(((pixelRadius + 1 - Math.Abs(xi - fpx)) * intens + (pixelRadius + 0.5 - Math.Abs(yi - fpy)) * intens) / 2);
+                                //alpha = ((intens * (pixelRadius - Math.Abs()
+                                //if (Math.Abs(xi - fpx) > 1 || Math.Abs(yi - fpy) > 1) alpha = 0;
+                                //distance = 
+                                //if(distance > 0)
+                                alpha = (ushort)(intens * (pixelRadius - distance)/pixelRadius);
                             }
                             // Set the pixel value.                    
                             byte[] colorData = { (byte)blue, (byte)green, (byte)red, (byte)alpha }; // B G R
 
-                            Int32Rect rect = new Int32Rect(x, y, 1, 1);
+                            Int32Rect rect = new Int32Rect(xi, yi, 1, 1);
                             int stride = (wb.PixelWidth * wb.Format.BitsPerPixel) / 8;
                             wb.WritePixels(rect, colorData, stride, 0);
 

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PinDataAnalyzer"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1000" Width="1200">
+        Title="MainWindow" Height="800" Width="1200">
     <Grid x:Name="MainGrid" Margin="0,0,0,0">
         <Border BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Left" Height="124" Margin="10,229,0,0" VerticalAlignment="Top" Width="92"/>
 
@@ -26,10 +26,12 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Board" IsSelected="True">
-                <Grid Background="#FFE5E5E5"  MouseMove="cBoard_MouseMove"  MouseDown="cBoard_MouseDown" MouseWheel="Grid_MouseWheel" ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                    <Canvas x:Name="cBoard" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch" SizeChanged="cBoard_SizeChanged"/>
-                    <Image x:Name="img" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,0" Width="0" Height="0"/>
-                </Grid>
+                <ScrollViewer x:Name="svBoard" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Grid x:Name="bGrid" Background="#FFE5E5E5"  MouseMove="cBoard_MouseMove"  MouseDown="cBoard_MouseDown" MouseWheel="Grid_MouseWheel" ScrollViewer.HorizontalScrollBarVisibility="Visible" ScrollViewer.CanContentScroll="True">
+                        <Canvas x:Name="cBoard" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Stretch" SizeChanged="cBoard_SizeChanged"/>
+                        <Image x:Name="img" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,0" Width="0" Height="0"/>
+                    </Grid>
+                </ScrollViewer>                                    
             </TabItem>
         </TabControl>
         <ProgressBar x:Name="pbInfo" HorizontalAlignment="Left" Height="27" Margin="10,229,0,0" VerticalAlignment="Top" Width="92" Orientation="Horizontal"/>
