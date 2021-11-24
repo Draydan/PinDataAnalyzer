@@ -24,7 +24,7 @@ namespace PinBoard
         // zooming coeficient to improve view
         public float Zoom = 1.5f;
         private readonly float minZoom = 0.3f;
-        private readonly float maxZoom = 5;
+        private readonly float maxZoom = 10;
         private readonly float zoomCoef = 1.05f;
         private float maxX, minX, maxY, minY;
 

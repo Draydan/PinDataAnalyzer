@@ -536,16 +536,18 @@ namespace PinDataAnalyzer
             // margin to cut
             float cut = 0.5f;
 
+            int imgWid = (int)Math.Round(img.Width, 0);
+            int imgHei = (int)Math.Round(img.Height, 0);
             //foreach (Pin pin in board.Pins)
             //    wb.SetPixel(pin.X, pin.Y, Color.Black);
 
-            int dpi = 300;
+            int dpi = 96;
             // Create the bitmap, with the dimensions of the image placeholder.
-            WriteableBitmap wb = new WriteableBitmap((int)img.Width,
-                (int)img.Height, dpi, dpi, PixelFormats.Bgra32, null);
+            WriteableBitmap wb = new WriteableBitmap((int)imgWid,
+                (int)imgHei, dpi, dpi, PixelFormats.Bgra32, null);
 
             // color map to fill and draw
-            ushort[,] map = new ushort[(int)img.Width, (int)img.Height];
+            ushort[,] map = new ushort[imgWid, imgHei];
 
             // color of pins
             ushort alpha = 0;
@@ -561,8 +563,8 @@ namespace PinDataAnalyzer
                 //px = (int)Math.Round(board.BoardToCanvasX(pin.X) / board.Zoom, 0);
                 //py = (int)Math.Round(board.BoardToCanvasY(pin.Y) / board.Zoom, 0);
                 float fpx, fpy;
-                fpx = pin.X - board.MinX;
-                fpy = board.MaxY - pin.Y;
+                fpx = (pin.X - board.MinX) * board.Zoom;
+                fpy = (board.MaxY - pin.Y) * board.Zoom;
                 px = (int)Math.Round(fpx, 0);
                 py = (int)Math.Round(fpy, 0);                
 
@@ -574,9 +576,8 @@ namespace PinDataAnalyzer
                     {
                         // one pixel is not enough while rectangle is too much. Lets try cross.
                         // ok, lets not
-                        if (xi >= 0 && yi >= 0 && xi < img.Width && yi < img.Height)//&& (x-px) * (y-py) != 1)
+                        if (xi >= 0 && yi >= 0 && xi < imgWid && yi < imgHei)//&& (x-px) * (y-py) != 1)
                         {
-
 
                             // Determine the pixel's color.
                             ushort intens = 255;
@@ -614,11 +615,11 @@ namespace PinDataAnalyzer
                     }
                 }
             }
-            //ushort[,] map = new ushort[(int)img.Width, (int)img.Height];
-            for (int xi = 0; xi < (int)img.Width; xi++)
+            //ushort[,] map = new ushort[(int)imgWid, (int)imgHei];
+            for (int xi = 0; xi < (int)imgWid; xi++)
             //int x = px;
             {
-                for (int yi = 0; yi < (int)img.Height; yi++)
+                for (int yi = 0; yi < (int)imgHei; yi++)
                 {
                     alpha = map[xi, yi];
                     if (alpha > 0)
@@ -662,6 +663,8 @@ namespace PinDataAnalyzer
             // draw pins as pixels
             img.Width = bMaxX - bMinX + 1;
             img.Height = bMaxY - bMinY + 1;
+            img.Width = board.Width;
+            img.Height = board.Height;
 
             img.Source = DrawPixels();
 
