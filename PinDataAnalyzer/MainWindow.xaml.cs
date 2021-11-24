@@ -326,6 +326,7 @@ namespace PinDataAnalyzer
                 //cBoard.Width = img.Width + 300;
                 //cBoard.Height = img.Height + 100;
                 ReDrawCanvas();
+                ReDrawImage();
                 WorkInProgress(false);
             }
         }
@@ -729,7 +730,8 @@ namespace PinDataAnalyzer
                 + "Hints:\n"
                 + "1) click board to set pivot\n"
                 + "2) click component in listbox to\nhighlight it on board\n"
-                + "3) use mouse wheel to zoom in and out"
+                + "3) use mouse wheel to zoom in and out\n"
+                + "4) click checkbox for wider pins (bolder, more weight)"
                 , color);
             WriteOnBoard(gravCenterX, posY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
             DrawPointFigure(gravCenterX, gravCenterY, color);
