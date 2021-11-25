@@ -312,6 +312,9 @@ namespace PinDataAnalyzer
             if (board.Pins.Count > 0)
             {
                 WorkInProgress(true);
+                Point prevMousePoint = e.GetPosition(cBoard);
+                System.Drawing.PointF prevBoardMousePoint = board.CanvasToBoardCoordinates(prevMousePoint.X, prevMousePoint.Y);
+
                 if (e.Delta > 0)
                 {
                     board.ZoomIn();
@@ -327,6 +330,22 @@ namespace PinDataAnalyzer
                 //cBoard.Height = img.Height + 100;
                 ReDrawCanvas();
                 ReDrawImage();
+
+                // aim zoom proportionally to mouse cursor after redraw
+                Point newMousePoint = e.GetPosition(svBoard);
+                //double xProportion = mp.X / svBoard.ActualWidth;
+                //double yProportion = mp.Y / svBoard.ActualHeight;
+
+                double newCanvasMousePointX = board.BoardToCanvasX(prevBoardMousePoint.X);
+                double newCanvasMousePointY = board.BoardToCanvasY(prevBoardMousePoint.Y);
+
+                // new scrolled position shold leave mouse "board" coordinate the same
+                // scrollsize = screensize = gridsize
+                // scrollpos + mousepos = canvaspos
+                // scrollpos = canvaspos - mousepos
+
+                svBoard.ScrollToHorizontalOffset(newCanvasMousePointX - newMousePoint.X);
+                svBoard.ScrollToVerticalOffset(newCanvasMousePointY - newMousePoint.Y);
                 WorkInProgress(false);
             }
         }
@@ -731,7 +750,8 @@ namespace PinDataAnalyzer
                 + "1) click board to set pivot\n"
                 + "2) click component in listbox to\nhighlight it on board\n"
                 + "3) use mouse wheel to zoom in and out\n"
-                + "4) click checkbox for wider pins (bolder, more weight)"
+                + "4) when scrolls are active,\nzooming is aimed to mouse position\n"
+                + "5) click checkbox for wider pins (bolder, more weight)\n"                
                 , color);
             WriteOnBoard(gravCenterX, posY, $"Gravity center: ({gravCenterX}; {gravCenterY})", color);
             DrawPointFigure(gravCenterX, gravCenterY, color);
