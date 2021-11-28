@@ -49,6 +49,7 @@ namespace PinDataAnalyzer
         #endregion
 
         private Board board;
+        private BoardView boardView;
         private Polyline pivotPoly;
         private Polygon selectedComponentFigure;
 
@@ -56,6 +57,7 @@ namespace PinDataAnalyzer
         {
             InitializeComponent();
             board = new Board();
+            boardView = new BoardView(board);
 
             // pivot to 0
             pivotPoly = new Polyline();
@@ -313,21 +315,21 @@ namespace PinDataAnalyzer
             {
                 WorkInProgress(true);
                 Point prevMousePoint = e.GetPosition(cBoard);
-                System.Drawing.PointF prevBoardMousePoint = board.CanvasToBoardCoordinates(prevMousePoint.X, prevMousePoint.Y);
+                System.Drawing.PointF prevBoardMousePoint = boardView.CanvasToBoardCoordinates(prevMousePoint.X, prevMousePoint.Y);
 
                 if (e.Delta > 0)
                 {
-                    board.ZoomIn();
+                    boardView.ZoomIn();
                 }
                 else
                 {
-                    board.ZoomOut();
+                    boardView.ZoomOut();
                 }
                 //DrawBoardThreaded();
-                img.Width = board.Width;
-                img.Height = board.Height;
-                //cBoard.Width = img.Width + 300;
-                //cBoard.Height = img.Height + 100;
+                img.Width = boardView.Width;
+                img.Height = boardView.Height;
+                //cboardView.Width = img.Width + 300;
+                //cboardView.Height = img.Height + 100;
                 ReDrawCanvas();
                 ReDrawImage();
 
@@ -336,8 +338,8 @@ namespace PinDataAnalyzer
                 //double xProportion = mp.X / svBoard.ActualWidth;
                 //double yProportion = mp.Y / svBoard.ActualHeight;
 
-                double newCanvasMousePointX = board.BoardToCanvasX(prevBoardMousePoint.X);
-                double newCanvasMousePointY = board.BoardToCanvasY(prevBoardMousePoint.Y);
+                double newCanvasMousePointX = boardView.BoardToCanvasX(prevBoardMousePoint.X);
+                double newCanvasMousePointY = boardView.BoardToCanvasY(prevBoardMousePoint.Y);
 
                 // new scrolled position shold leave mouse "board" coordinate the same
                 // scrollsize = screensize = gridsize
@@ -386,7 +388,7 @@ namespace PinDataAnalyzer
                 {
                     // as screen coordinates are mirrored along Y axis, some transformations are necessary
                     Point mp = e.GetPosition(cBoard);
-                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                    System.Drawing.PointF p = boardView.CanvasToBoardCoordinates(mp.X, mp.Y);
                     lbInfo.Content = $"Mouse:\nX={p.X};\nY={p.Y}";
                 }
         }
@@ -402,7 +404,7 @@ namespace PinDataAnalyzer
                 if (board.Pins.Count > 0)
                 {
                     Point mp = e.GetPosition(cBoard);
-                    System.Drawing.PointF p = board.CanvasToBoardCoordinates(mp.X, mp.Y);
+                    System.Drawing.PointF p = boardView.CanvasToBoardCoordinates(mp.X, mp.Y);
                     tbAroundX.Text = ((int)p.X).ToString();
                     tbAroundY.Text = ((int)p.Y).ToString();
 
@@ -580,11 +582,11 @@ namespace PinDataAnalyzer
                 int px = (int)pin.X;
                 int py = (int)pin.Y;
 
-                //px = (int)Math.Round(board.BoardToCanvasX(pin.X) / board.Zoom, 0);
-                //py = (int)Math.Round(board.BoardToCanvasY(pin.Y) / board.Zoom, 0);
+                //px = (int)Math.Round(boardView.BoardToCanvasX(pin.X) / boardView.Zoom, 0);
+                //py = (int)Math.Round(boardView.BoardToCanvasY(pin.Y) / boardView.Zoom, 0);
                 float fpx, fpy;
-                fpx = (pin.X - board.MinX) * board.Zoom;
-                fpy = (board.MaxY - pin.Y) * board.Zoom;
+                fpx = (pin.X - board.MinX) * boardView.Zoom;
+                fpy = (board.MaxY - pin.Y) * boardView.Zoom;
                 px = (int)Math.Round(fpx, 0);
                 py = (int)Math.Round(fpy, 0);                
 
@@ -683,13 +685,13 @@ namespace PinDataAnalyzer
             // draw pins as pixels
             img.Width = bMaxX - bMinX + 1;
             img.Height = bMaxY - bMinY + 1;
-            img.Width = board.Width;
-            img.Height = board.Height;
+            img.Width = boardView.Width;
+            img.Height = boardView.Height;
 
             img.Source = DrawPixels();
 
-            img.Width = board.Width;
-            img.Height = board.Height;
+            img.Width = boardView.Width;
+            img.Height = boardView.Height;
         }
 
         /// <summary>
@@ -784,10 +786,10 @@ namespace PinDataAnalyzer
             }
 
             List<Pin> thisComponentPins = board.Pins.Where(pin => pin.ComponentName == componentName).ToList();
-            float MaxX = board.BoardToCanvasX(thisComponentPins.Max(pin => pin.X));
-            float MaxY = board.BoardToCanvasY(thisComponentPins.Max(pin => pin.Y));
-            float MinX = board.BoardToCanvasX(thisComponentPins.Min(pin => pin.X));
-            float MinY = board.BoardToCanvasY(thisComponentPins.Min(pin => pin.Y));
+            float MaxX = boardView.BoardToCanvasX(thisComponentPins.Max(pin => pin.X));
+            float MaxY = boardView.BoardToCanvasY(thisComponentPins.Max(pin => pin.Y));
+            float MinX = boardView.BoardToCanvasX(thisComponentPins.Min(pin => pin.X));
+            float MinY = boardView.BoardToCanvasY(thisComponentPins.Min(pin => pin.Y));
 
             //selectedComponentFigure.Width = MaxX - MinX;
             //selectedComponentFigure.Height = Math.Abs(MaxY - MinY);
@@ -810,8 +812,8 @@ namespace PinDataAnalyzer
             {
                 if (board != null && tbDegree != null && tbAroundX != null && tbAroundY != null)
                 {
-                    int px = (int)Math.Round(board.BoardToCanvasX(Helper.ParseGBFloat(tbAroundX.Text)), 0);
-                    int py = (int)Math.Round(board.BoardToCanvasY(Helper.ParseGBFloat(tbAroundY.Text)), 0);
+                    int px = (int)Math.Round(boardView.BoardToCanvasX(Helper.ParseGBFloat(tbAroundX.Text)), 0);
+                    int py = (int)Math.Round(boardView.BoardToCanvasY(Helper.ParseGBFloat(tbAroundY.Text)), 0);
 
                     pivotPoly.Points[0] = new Point(px + pivotRadius, py);
                     pivotPoly.Points[1] = new Point(px, py);
@@ -869,8 +871,8 @@ namespace PinDataAnalyzer
         {
             //ushort shift = 5;
 
-            int cx = (int)board.BoardToCanvasX(bx);
-            int cy = (int)board.BoardToCanvasY(by);
+            int cx = (int)boardView.BoardToCanvasX(bx);
+            int cy = (int)boardView.BoardToCanvasY(by);
 
             //(int)(pin.X - minX), (int)(maxY - pin.Y)
 
@@ -914,8 +916,8 @@ namespace PinDataAnalyzer
         {
             int radius = width;
 
-            int x = (int)Math.Round(board.BoardToCanvasX(bx), 0);
-            int y = (int)Math.Round(board.BoardToCanvasY(by), 0);
+            int x = (int)Math.Round(boardView.BoardToCanvasX(bx), 0);
+            int y = (int)Math.Round(boardView.BoardToCanvasY(by), 0);
 
             Point point = new(x, y);
             Ellipse figure = new();
