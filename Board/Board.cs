@@ -58,33 +58,20 @@ namespace PinBoard
         }
 
         /// <summary>
-        /// Rotate the points, by ‘n’ degrees, around a defined point in x and y
+        /// Rotate part of the points, by ‘n’ degrees, around a defined point in x and y
         /// </summary>
         /// <param name="degreeTurn"></param>
         /// <param name="xTurn"></param>
         /// <param name="yTurn"></param>
         public void Turn(float degreeTurn, float xTurn, float yTurn)
         {
-            Turn(degreeTurn, xTurn, yTurn, 0, Pins.Count - 1);
-        }
-
-        /// <summary>
-        /// Rotate part of the points, by ‘n’ degrees, around a defined point in x and y
-        /// </summary>
-        /// <param name="degree"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        public void Turn(float degreeTurn, float xTurn, float yTurn, int startPin, int endPin)
-        {
             // turn angle in radians
             double rad = Math.PI * degreeTurn / 180f;
             double sin = Math.Sin(rad);
             double cos = Math.Cos(rad);
 
-            for (int pi = startPin; pi < endPin && pi < Pins.Count; pi++)
-            {
-                Pin pin = Pins[pi];
-                                
+            foreach(Pin pin in Pins)
+            {                                 
                 double x0 = pin.X;
                 double y0 = pin.Y;
                 // coordinates relative to turn point

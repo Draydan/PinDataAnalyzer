@@ -239,13 +239,7 @@ namespace PinDataAnalyzer
             ShowProgressThreaded("Rotating", 10);
             WorkInProgress(true);
             int pinCount = board.Pins.Count;
-            // write portions of pins and show progress with each portion
-            for (int pi = 0; pi < pinCount; pi += refreshStep)
-            {
-                string info = "Rotating"; //$"Rotating\n{pi} of {pinCount}"
-                ShowProgressThreaded(info, progress: (ushort)(progressOnLongPhaseStart * (float)pi / pinCount));
-                //board.Turn(degree, centerX, centerY, pi, pi + refreshStep);
-            }
+
             board.Turn(degree, centerX, centerY);
             ShowProgressThreaded("Drawing", progressOnLongPhaseStart);
             DrawBoardThreaded();
@@ -529,7 +523,6 @@ namespace PinDataAnalyzer
         }
         #endregion
 
-
         #region drawing stuff
         /// <summary>
         /// draw pins on board canvas in a thread
@@ -551,12 +544,12 @@ namespace PinDataAnalyzer
             // maybe draw pixels around pixel for more uniform visual distribution
             ushort pixelRadius = (ushort)(((bool)cbAA.IsChecked) ? 2 : 1);
 
-            // internal parameter to try show big blurry pixels a bit "smaller"
+            // internal experimental parameter to try show big blurry pixels a bit "smaller"
             bool smallerPixels = false;
 
             // make this pseudocircle less sizeable visually, by cutting blur at some radius.
             // margin to cut
-            float cut = 0.5f;
+            //float cut = 0.5f;
 
             int imgWid = (int)Math.Round(img.Width, 0);
             int imgHei = (int)Math.Round(img.Height, 0);
@@ -577,30 +570,26 @@ namespace PinDataAnalyzer
             ushort green = 0;
             ushort blue = 255;
 
+            // set colors in an array for pins
             foreach (Pin pin in board.Pins)
             {
                 int px = (int)pin.X;
                 int py = (int)pin.Y;
 
-                //px = (int)Math.Round(boardView.BoardToCanvasX(pin.X) / boardView.Zoom, 0);
-                //py = (int)Math.Round(boardView.BoardToCanvasY(pin.Y) / boardView.Zoom, 0);
                 float fpx, fpy;
                 fpx = (pin.X - board.MinX) * boardView.Zoom;
                 fpy = (board.MaxY - pin.Y) * boardView.Zoom;
                 px = (int)Math.Round(fpx, 0);
                 py = (int)Math.Round(fpy, 0);                
 
-                for (int xi = px - pixelRadius + 1; xi < px + pixelRadius; xi++)
-                //int x = px;
+                for (int xi = px - pixelRadius + 1; xi < px + pixelRadius; xi++)                
                 {
-                    for (int yi = py - pixelRadius + 1; yi < py + pixelRadius; yi++)
-                    //int y = py;
+                    for (int yi = py - pixelRadius + 1; yi < py + pixelRadius; yi++)                    
                     {
                         // one pixel is not enough while rectangle is too much. Lets try cross.
                         // ok, lets not
                         if (xi >= 0 && yi >= 0 && xi < imgWid && yi < imgHei)//&& (x-px) * (y-py) != 1)
                         {
-
                             // Determine the pixel's color.
                             ushort intens = 255;
 
@@ -615,7 +604,7 @@ namespace PinDataAnalyzer
                                 //alpha = (int)(((pixelRadius + 1 - Math.Abs(xi - fpx)) * intens + (pixelRadius + 0.5 - Math.Abs(yi - fpy)) * intens) / 2);
                                 //alpha = ((intens * (pixelRadius - Math.Abs()
                                 //if (Math.Abs(xi - fpx) > 1 || Math.Abs(yi - fpy) > 1) alpha = 0;
-                                //distance = 
+                                
                                 if (smallerPixels)
                                 {
                                     if (distance < 1)
@@ -625,8 +614,7 @@ namespace PinDataAnalyzer
                                 }
                                 else
                                 {
-                                    alpha = (ushort)(intens * (pixelRadius - distance) / pixelRadius);
-                                    //if (distance > pixelRadius) Console.WriteLine("dist > radius");
+                                    alpha = (ushort)(intens * (pixelRadius - distance) / pixelRadius);                                    
                                 }
                                 if(alpha > map[xi, yi])
                                     map[xi, yi] = alpha;
@@ -637,9 +625,9 @@ namespace PinDataAnalyzer
                     }
                 }
             }
-            //ushort[,] map = new ushort[(int)imgWid, (int)imgHei];
-            for (int xi = 0; xi < (int)imgWid; xi++)
-            //int x = px;
+            
+            // draw pixels on bitmap according to colors in array
+            for (int xi = 0; xi < (int)imgWid; xi++)            
             {
                 for (int yi = 0; yi < (int)imgHei; yi++)
                 {
@@ -652,8 +640,6 @@ namespace PinDataAnalyzer
                         Int32Rect rect = new Int32Rect(xi, yi, 1, 1);
                         int stride = wb.PixelWidth * wb.Format.BitsPerPixel / 8;
                         wb.WritePixels(rect, colorData, stride, 0);
-
-                        //wb.WritePixels(.[y * wb.PixelWidth + x] = pixelColorValue;
                     }
                 }
             }
@@ -934,5 +920,3 @@ namespace PinDataAnalyzer
         #endregion
     }
 }
-
-
